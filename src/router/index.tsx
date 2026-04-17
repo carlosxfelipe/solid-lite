@@ -1,4 +1,4 @@
-import { createEffect, createSignal, h, Show } from "@solid/index.ts";
+import { createSignal, h, Show } from "@solid/index.ts";
 
 /**
  * Basic Reactive Router State
@@ -64,12 +64,15 @@ interface RouteProps {
 export function Route(props: RouteProps) {
   const match = () => matchPath(props.path, currentPath());
 
-  createEffect(() => {
-    const p = match();
-    if (p) setParams(p);
-  });
-
-  return <Show when={() => !!match()}>{props.component()}</Show>;
+  return (
+    <Show when={() => !!match()}>
+      {() => {
+        const m = match();
+        if (m) setParams(m);
+        return props.component();
+      }}
+    </Show>
+  );
 }
 
 /**

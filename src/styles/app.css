@@ -185,3 +185,59 @@ body {
 main {
   width: 100%;
 }
+
+/* Forms & Inputs */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.01em;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: hsl(var(--secondary) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.form-input:hover, .form-textarea:hover {
+  background-color: hsl(var(--secondary));
+  border-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+.form-input:focus, .form-textarea:focus {
+  background-color: hsl(var(--background));
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsla(var(--ring), 0.15);
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+.form-textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.btn-large {
+  width: 100%;
+  height: 3rem;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}

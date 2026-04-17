@@ -20,6 +20,7 @@ html {
 body {
   margin: 0;
   line-height: inherit;
+  color-scheme: light dark;
 }
 
 hr {

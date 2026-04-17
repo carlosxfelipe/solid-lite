@@ -219,6 +219,7 @@ function setAttr(el: Element, name: string, value: unknown) {
 function normalizeToNodes(value: unknown): Node[] {
   if (value == null || value === false || value === true) return [];
   if (value instanceof Node) return [value];
+  if (typeof value === "function") return normalizeToNodes(value());
   if (Array.isArray(value)) {
     const out: Node[] = [];
     for (const v of (value as unknown[]).flat()) {
@@ -403,15 +404,13 @@ export function Show(
   const frag = document.createDocumentFragment();
   frag.appendChild(start);
   frag.appendChild(end);
-  let prevValue: unknown = undefined;
   createEffect(() => {
     const next = !!props.when();
-    if (next === prevValue) return;
-    prevValue = next;
     clearRange(start, end);
     const content = next ? props.children : props.fallback;
-    if (content) {
-      const nodes = normalizeToNodes(content);
+    const contentToRender = typeof content === "function" ? content() : content;
+    if (contentToRender) {
+      const nodes = normalizeToNodes(contentToRender);
       const f = document.createDocumentFragment();
       for (const n of nodes) f.appendChild(n);
       end.parentNode?.insertBefore(f, end);
