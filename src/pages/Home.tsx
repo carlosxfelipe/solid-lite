@@ -1,5 +1,6 @@
 import { h } from "@solid/index.ts";
 import { Counter } from "@components/Counter.tsx";
+import { CollectionShowcase } from "@components/CollectionShowcase.tsx";
 
 export function Home() {
   return (
@@ -10,6 +11,7 @@ export function Home() {
       </p>
 
       <Counter />
+      <CollectionShowcase />
     </div>
   );
 }

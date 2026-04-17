@@ -39,4 +39,4 @@ deno task dev
 - /solid: Núcleo da lógica de reatividade e runtime.
 - /src: Código fonte da aplicação (componentes, páginas, estilos).
 - /scripts: Ferramentas auxiliares de automação e servidor local.
-- /public: Arquivos estáticos legados.
+- /public: Ativos estáticos (favicon, redirects, etc).
