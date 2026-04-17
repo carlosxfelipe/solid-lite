@@ -1,4 +1,4 @@
-import { createSignal } from "@solid/index.ts";
+import { createEffect, createSignal, h, Show } from "@solid/index.ts";
 
 /**
  * Basic Reactive Router State
@@ -51,4 +51,61 @@ if (globalThis.addEventListener) {
   globalThis.addEventListener("popstate", () => {
     setCurrentPath(globalThis.location.pathname);
   });
+}
+
+/**
+ * Route Component
+ */
+interface RouteProps {
+  path: string;
+  component: () => JSX.Element;
+}
+
+export function Route(props: RouteProps) {
+  const match = () => matchPath(props.path, currentPath());
+
+  createEffect(() => {
+    const p = match();
+    if (p) setParams(p);
+  });
+
+  return <Show when={() => !!match()}>{props.component()}</Show>;
+}
+
+/**
+ * Link Component
+ */
+interface LinkProps {
+  href: string;
+  children: unknown;
+  class?: string;
+  style?: string | JSX.StyleObject;
+}
+
+export function Link(props: LinkProps) {
+  const handleClick = (e: MouseEvent) => {
+    if (
+      e.button !== 0 ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.shiftKey ||
+      e.altKey
+    ) {
+      return;
+    }
+
+    e.preventDefault();
+    navigate(props.href);
+  };
+
+  return (
+    <a
+      href={props.href}
+      class={props.class}
+      style={props.style}
+      onClick={handleClick}
+    >
+      {props.children}
+    </a>
+  );
 }

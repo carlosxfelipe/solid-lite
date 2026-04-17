@@ -1,7 +1,6 @@
 import { h, Show } from "@solid/index.ts";
 import { Navbar } from "@components/Navbar.tsx";
-import { Route } from "@components/Route.tsx";
-import { currentPath, matchPath } from "@utils/router.ts";
+import { currentPath, matchPath, Route } from "@router/index.tsx";
 import { Home } from "@pages/Home.tsx";
 import { About } from "@pages/About.tsx";
 import { Contact } from "@pages/Contact.tsx";

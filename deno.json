@@ -51,6 +51,7 @@
     "@components/": "./src/components/",
     "@solid/": "./solid/",
     "@pages/": "./src/pages/",
+    "@router/": "./src/router/",
     "@src/": "./src/",
     "@utils/": "./src/utils/"
   }

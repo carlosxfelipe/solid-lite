@@ -1,5 +1,5 @@
 import { h, Show } from "@solid/index.ts";
-import { params } from "@utils/router.ts";
+import { params } from "@router/index.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
 
 // Mock list of "existing" IDs in our system

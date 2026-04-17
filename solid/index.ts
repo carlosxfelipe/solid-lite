@@ -395,7 +395,9 @@ export function render(node: Node, container: Element) {
   container.appendChild(node);
 }
 
-export function Show(props: { when: () => unknown; children: Child; fallback?: Child }) {
+export function Show(
+  props: { when: () => unknown; children: Child; fallback?: Child },
+) {
   const start = document.createComment("show-start");
   const end = document.createComment("show-end");
   const frag = document.createDocumentFragment();

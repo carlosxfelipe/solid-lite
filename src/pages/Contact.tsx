@@ -11,11 +11,19 @@ export function Contact() {
         <form style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div>
             <label>Name</label>
-            <input type="text" placeholder="Your name" style={{ width: "100%" }} />
+            <input
+              type="text"
+              placeholder="Your name"
+              style={{ width: "100%" }}
+            />
           </div>
           <div>
             <label>Message</label>
-            <textarea placeholder="Your message" style={{ width: "100%", minHeight: "100px" }}></textarea>
+            <textarea
+              placeholder="Your message"
+              style={{ width: "100%", minHeight: "100px" }}
+            >
+            </textarea>
           </div>
           <button type="button" class="btn btn-primary">Send Message</button>
         </form>

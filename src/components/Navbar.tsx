@@ -1,5 +1,5 @@
 import { h } from "@solid/index.ts";
-import { Link } from "@components/Link.tsx";
+import { Link } from "@router/index.tsx";
 
 export function Navbar() {
   return (
