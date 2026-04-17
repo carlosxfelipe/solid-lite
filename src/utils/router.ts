@@ -1,0 +1,54 @@
+import { createSignal } from "@solid/index.ts";
+
+/**
+ * Basic Reactive Router State
+ */
+export const [currentPath, setCurrentPath] = createSignal(
+  globalThis.location?.pathname || "/",
+);
+
+/**
+ * Signal to hold extracted route parameters (e.g., { id: "123" })
+ */
+export const [params, setParams] = createSignal({} as Record<string, string>);
+
+/**
+ * Poor man's path regex matcher.
+ * Converts "/user/:id" to a regex and extracts "id".
+ */
+export function matchPath(pattern: string, path: string) {
+  const paramNames: string[] = [];
+  const regexPath = pattern.replace(/:([a-zA-Z0-9_]+)/g, (_, name) => {
+    paramNames.push(name);
+    return "([^/]+)";
+  });
+
+  const regex = new RegExp(`^${regexPath}$`);
+  const match = path.match(regex);
+
+  if (!match) return null;
+
+  const result: Record<string, string> = {};
+  paramNames.forEach((name, i) => {
+    result[name] = match[i + 1];
+  });
+
+  return result;
+}
+
+/**
+ * Navigates to a new path using History API and updates the reactive state.
+ */
+export function navigate(path: string) {
+  globalThis.history.pushState({}, "", path);
+  setCurrentPath(path);
+}
+
+/**
+ * Handle browser Back/Forward navigation
+ */
+if (globalThis.addEventListener) {
+  globalThis.addEventListener("popstate", () => {
+    setCurrentPath(globalThis.location.pathname);
+  });
+}

@@ -1,42 +1,68 @@
 # Solid Lite
 
-Uma implementação minimalista do motor de reatividade do SolidJS rodando nativamente sobre Deno. O projeto demonstra como criar uma arquitetura de Single Page Application (SPA) com reatividade granular utilizando o DOM real, sem a necessidade de um compilador complexo.
+A minimalist implementation of the SolidJS reactivity engine running natively on
+Deno. This project demonstrates how to create a Single Page Application (SPA)
+architecture with granular reactivity using the real DOM, without the need for a
+complex compiler.
 
-## Características Técnicas
+## Technical Features
 
-- Reatividade fina: Utiliza signals e effects para atualizações cirúrgicas no DOM real.
-- Runtime JSX: Processamento de interface via função HyperScript (h) em tempo de execução.
-- Sem links virtuais: Diferente do React, as mudanças são aplicadas diretamente aos nós do navegador.
-- Deno nativo: Construído para aproveitar a performance e as APIs de segurança do Deno.
+- **Fine-grained reactivity**: Uses signals and effects for surgical updates to
+  the real DOM.
+- **JSX Runtime**: Interface processing via a HyperScript (h) function at
+  runtime.
+- **No Virtual DOM**: Unlike React, changes are applied directly to browser
+  nodes.
+- **Native Deno**: Built to leverage Deno's performance and security APIs.
 
-## Requisitos
+## Requirements
 
-- Deno instalado no sistema.
+- [Deno](https://deno.land/) installed on your system.
+- [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno)
+  for VS Code (recommended).
 
-## Como Executar
+## How to Run
 
-O projeto utiliza o sistema de tarefas do Deno para automação.
+The project uses Deno's task system for automation.
 
-### Iniciar Aplicação
-Para limpar o build anterior, compilar os arquivos e iniciar o servidor de visualização:
+### Start Application
+
+To clean the previous build, compile the files, and start the preview server:
+
 ```bash
 deno task start
 ```
 
-### Apenas Compilação
-Para gerar os arquivos na pasta dist sem iniciar o servidor:
+### Other Commands
+
+To see all available commands, please review the `deno.json` file.
+
+## Code Formatting
+
+This project uses Deno's built-in formatter. To ensure consistent code style across the project, you can run:
+
 ```bash
-deno task build
+deno fmt
 ```
 
-### Desenvolvimento (Sem Limpeza)
-Para compilar e visualizar rapidamente:
-```bash
-deno task dev
+Formatting rules and file exclusions are managed in the `deno.json` configuration file.
+
+### VS Code Setup
+
+If you use VS Code and have the **Prettier** extension installed, it may conflict with Deno. To use Deno's formatter automatically on save, ensure your `.vscode/settings.json` is configured as follows:
+
+```json
+"[typescript]": {
+  "editor.defaultFormatter": "denoland.vscode-deno"
+},
+"[typescriptreact]": {
+  "editor.defaultFormatter": "denoland.vscode-deno"
+}
 ```
 
-### Estrutura de Pastas
-- /solid: Núcleo da lógica de reatividade e runtime.
-- /src: Código fonte da aplicação (componentes, páginas, estilos).
-- /scripts: Ferramentas auxiliares de automação e servidor local.
-- /public: Ativos estáticos (favicon, redirects, etc).
+## Folder Structure
+
+- `/solid`: Core reactivity logic and runtime.
+- `/src`: Application source code (components, pages, styles).
+- `/scripts`: Auxiliary automation tools and local server.
+- `/public`: Static assets (favicon, redirects, etc.).

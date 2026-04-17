@@ -1,6 +1,7 @@
 import { serveDir, serveFile } from "@std/http/file-server";
+import { bold, cyan, green } from "@std/fmt/colors";
 
-Deno.serve(async (req) => {
+const handler = async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
 
   // Try serving a static asset first (CSS, JS, images, etc.)
@@ -29,4 +30,16 @@ Deno.serve(async (req) => {
 
   // Otherwise, return the original 404 (for API calls, assets, etc.)
   return res;
-});
+};
+
+Deno.serve({
+  port: 8000,
+  onListen({ port, hostname }) {
+    const host = hostname === "0.0.0.0" ? "localhost" : hostname;
+    console.log(
+      `\n  ${green("➜")}  ${bold("Local:")}   ${
+        cyan(`http://${host}:${port}/`)
+      }\n`,
+    );
+  },
+}, handler);

@@ -1,4 +1,5 @@
 import { h } from "@solid/index.ts";
+import { Link } from "@components/Link.tsx";
 
 export function Navbar() {
   return (
@@ -6,9 +7,18 @@ export function Navbar() {
       <div class="navbar-container">
         <div class="navbar-logo">Solid Lite</div>
         <div class="navbar-links">
-          <a href="#" class="navbar-link">Início</a>
-          <a href="#" class="navbar-link">Sobre</a>
-          <a href="#" class="navbar-link">Contato</a>
+          <Link href="/" class="navbar-link">
+            Home
+          </Link>
+          <Link href="/about" class="navbar-link">
+            About
+          </Link>
+          <Link href="/contact" class="navbar-link">
+            Contact
+          </Link>
+          <Link href="/user/123" class="navbar-link">
+            Profile
+          </Link>
         </div>
       </div>
     </nav>

@@ -7,7 +7,7 @@ export function Home() {
     <div class="container">
       <h1 class="title">Solid Lite</h1>
       <p class="description">
-        Uma implementação minimalista e performática inspirada no SolidJS.
+        A minimalist and high-performance implementation inspired by SolidJS.
       </p>
 
       <Counter />

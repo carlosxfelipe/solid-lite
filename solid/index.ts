@@ -395,23 +395,24 @@ export function render(node: Node, container: Element) {
   container.appendChild(node);
 }
 
-export function Show(props: { when: () => unknown; children: Child }) {
+export function Show(props: { when: () => unknown; children: Child; fallback?: Child }) {
   const start = document.createComment("show-start");
   const end = document.createComment("show-end");
   const frag = document.createDocumentFragment();
   frag.appendChild(start);
   frag.appendChild(end);
-  let prev = false;
+  let prevValue: unknown = undefined;
   createEffect(() => {
     const next = !!props.when();
-    if (next === prev) return;
-    prev = next;
+    if (next === prevValue) return;
+    prevValue = next;
     clearRange(start, end);
-    if (next) {
-      const nodes = normalizeToNodes(props.children);
+    const content = next ? props.children : props.fallback;
+    if (content) {
+      const nodes = normalizeToNodes(content);
       const f = document.createDocumentFragment();
       for (const n of nodes) f.appendChild(n);
-      end.parentNode!.insertBefore(f, end);
+      end.parentNode?.insertBefore(f, end);
     }
   });
   return frag;

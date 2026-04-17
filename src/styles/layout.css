@@ -1,4 +1,4 @@
-/* Container principal com largura máxima e centralizado horizontalmente */
+/* Main container with max width and horizontal centering */
 .container {
   margin-left: auto;
   margin-right: auto;
@@ -6,13 +6,13 @@
   max-width: 800px;
 }
 
-/* Container que ocupa toda a largura da tela com um respiro lateral */
+/* Full-width container with side padding */
 .container-fluid {
   width: 100%;
   padding: 1.5rem;
 }
 
-/* Centraliza o conteúdo vertical e horizontalmente ocupando a tela inteira */
+/* Centers content both vertically and horizontally across the entire viewport */
 .center-viewport {
   display: grid;
   place-items: center;
