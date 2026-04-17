@@ -1,0 +1,34 @@
+{
+  "tasks": {
+    "clean": "rm -rf dist",
+    "build": "deno bundle --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
+    "preview": "deno run --allow-read --allow-net -q scripts/server.ts",
+    "dev": "deno task build && deno task preview",
+    "start": "deno task clean && deno task build && deno task preview"
+  },
+  "compilerOptions": {
+    "jsx": "react",
+    "jsxFactory": "h",
+    "strict": true,
+    "lib": [
+      "dom",
+      "esnext",
+      "deno.ns"
+    ],
+    "types": [
+      "./solid/jsx.d.ts"
+    ]
+  },
+  "imports": {
+    "@std/collections": "jsr:@std/collections@^1.1.6",
+    "@std/fmt": "jsr:@std/fmt@^1.0.9",
+    "@std/http/file-server": "jsr:@std/http@^1.0.25/file-server",
+    "@std/path": "jsr:@std/path@^1.1.4",
+    "@std/testing": "jsr:@std/testing@^1.0.17",
+    "@components/": "./src/components/",
+    "@solid/": "./solid/",
+    "@pages/": "./src/pages/",
+    "@src/": "./src/",
+    "@utils/": "./src/utils/"
+  }
+}

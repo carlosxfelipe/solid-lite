@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+
+# Deno
+.deno/
+
+# IDEs
+.vscode/
+.idea/
+
+# Build
+dist/
+
+# Environment
+.env*
