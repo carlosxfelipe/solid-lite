@@ -36,7 +36,8 @@ export function Contact() {
               id="contact-message"
               class="form-textarea"
               placeholder="How can we help you?"
-            ></textarea>
+            >
+            </textarea>
           </div>
 
           <button type="submit" class="btn btn-primary btn-large">

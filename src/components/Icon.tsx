@@ -1,6 +1,8 @@
 import { h } from "@solid/index.ts";
 import { IconName, Icons } from "@utils/icons.tsx";
 
+export type { IconName };
+
 interface IconProps {
   name: IconName;
   size?: number;

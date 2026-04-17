@@ -89,7 +89,7 @@ export function CollectionShowcase() {
         type="button"
         class="btn btn-secondary"
         onClick={refreshTip}
-        style={{ gap: "0.5rem" }}
+        style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
       >
         <Icon name="RefreshCw" size={16} /> Draw New Tip
       </button>

@@ -22,27 +22,30 @@ export function Counter() {
       <div class="button-group">
         <button
           type="button"
-          class="btn btn-secondary"
+          class="btn btn-secondary btn-icon"
           onClick={() => setCount((c: number) => c - 1)}
-          style={{ gap: "0.5rem" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
         >
-          <Icon name="Minus" size={16} /> Decrease
+          <Icon name="Minus" size={16} />
+          <span class="btn-label">Decrease</span>
         </button>
         <button
           type="button"
-          class="btn btn-primary"
+          class="btn btn-primary btn-icon"
           onClick={() => setCount((c: number) => c + 1)}
-          style={{ gap: "0.5rem" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
         >
-          <Icon name="Plus" size={16} /> Increase
+          <Icon name="Plus" size={16} />
+          <span class="btn-label">Increase</span>
         </button>
         <button
           type="button"
-          class="btn btn-danger"
-          style={{ marginLeft: "auto", gap: "0.5rem" }}
+          class="btn btn-danger btn-icon"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
           onClick={() => setCount(0)}
         >
-          <Icon name="RefreshCw" size={16} /> Reset
+          <Icon name="RefreshCw" size={16} />
+          <span class="btn-label">Reset</span>
         </button>
       </div>
     </div>
