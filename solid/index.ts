@@ -3,6 +3,42 @@ import { createEffect, createRoot, onCleanup } from "./solid.js";
 
 const DISPOSE = Symbol("d");
 
+const HANDLERS = Symbol("h");
+type HandlerMap = Record<string, EventListener>;
+type NodeWithHandlers = Node & { [HANDLERS]?: HandlerMap };
+
+const delegatedEvents = new Set<string>();
+
+function delegateEvent(
+  el: Element,
+  eventName: string,
+  handler: EventListener,
+): void {
+  const node = el as NodeWithHandlers;
+  if (!node[HANDLERS]) node[HANDLERS] = {};
+  node[HANDLERS]![eventName] = handler;
+
+  if (!delegatedEvents.has(eventName)) {
+    delegatedEvents.add(eventName);
+    document.addEventListener(eventName, (e: Event) => {
+      let target = e.target as NodeWithHandlers | null;
+      while (target && target !== (document as unknown as NodeWithHandlers)) {
+        const h = target[HANDLERS]?.[eventName];
+        if (h) {
+          h.call(target, e);
+          if ((e as Event & { cancelBubble?: boolean }).cancelBubble) break;
+        }
+        target = (target as Node).parentNode as NodeWithHandlers | null;
+      }
+    });
+  }
+}
+
+function undelegateEvent(el: Element, eventName: string): void {
+  const node = el as NodeWithHandlers;
+  if (node[HANDLERS]) delete node[HANDLERS]![eventName];
+}
+
 type Cleanup = () => void;
 type NodeWithDispose = Node & { [DISPOSE]?: Cleanup };
 type RefObject<T extends Element = Element> = { current: T | null };
@@ -164,8 +200,8 @@ function setAttr(el: Element, name: string, value: unknown) {
   if (/^on[A-Z]/.test(name) && typeof value === "function") {
     const ev = name.slice(2).toLowerCase();
     const handler = value as EventListener;
-    el.addEventListener(ev, handler);
-    onCleanup(() => el.removeEventListener(ev, handler));
+    delegateEvent(el, ev, handler);
+    onCleanup(() => undelegateEvent(el, ev));
     return;
   }
 
@@ -258,6 +294,18 @@ function insertNodesAfter(ref: Node, nodes: Node[]) {
     else ref.parentNode!.appendChild(n);
     cursor = n;
   }
+}
+
+function insertNodes(nodes: Node[], before: Node): void {
+  if (nodes.length === 0) return;
+  const parent = before.parentNode!;
+  if (nodes.length === 1) {
+    parent.insertBefore(nodes[0], before);
+    return;
+  }
+  const f = document.createDocumentFragment();
+  for (const n of nodes) f.appendChild(n);
+  parent.insertBefore(f, before);
 }
 
 function appendDynamic(parent: Node, getter: () => unknown) {
@@ -409,15 +457,14 @@ export function Show(
     clearRange(start, end);
     const content = next ? props.children : props.fallback;
     const contentToRender = typeof content === "function" ? content() : content;
-    if (contentToRender) {
-      const nodes = normalizeToNodes(contentToRender);
-      const f = document.createDocumentFragment();
-      for (const n of nodes) f.appendChild(n);
-      end.parentNode?.insertBefore(f, end);
+    if (contentToRender && end.parentNode) {
+      insertNodes(normalizeToNodes(contentToRender), end);
     }
   });
   return frag;
 }
+
+type IndexBlock = { start: Comment; end: Comment };
 
 export function For<T>(props: {
   each: () => T[];
@@ -429,38 +476,63 @@ export function For<T>(props: {
   const frag = document.createDocumentFragment();
   frag.appendChild(start);
   frag.appendChild(end);
+
+  const unkeyedBlocks: IndexBlock[] = [];
+
   const blocks = new Map<
     Key,
     { start: Comment; end: Comment; index: () => number }
   >();
-  let prevList: T[] | undefined;
   const idxMap = new Map<Key, number>();
 
   createEffect(() => {
-    const render = typeof props.children === "function"
+    const renderFn = typeof props.children === "function"
       ? props.children as Renderer<T>
       : (Array.isArray(props.children) &&
           typeof props.children[0] === "function"
         ? props.children[0] as Renderer<T>
         : undefined);
-    if (!render) return;
+    if (!renderFn) return;
+
     const list = props.each();
     const kf = props.key;
+
     if (!kf) {
-      if (
-        prevList && prevList.length === list.length &&
-        list.every((it, i) => it === (prevList as T[])[i])
-      ) return;
-      clearRange(start, end);
-      const f = document.createDocumentFragment();
-      list.forEach((item, i) => {
-        const nodes = normalizeToNodes(render(item, () => i));
+      const nextLen = list.length;
+      const prevLen = unkeyedBlocks.length;
+
+      for (let i = 0; i < Math.min(prevLen, nextLen); i++) {
+        const blk = unkeyedBlocks[i];
+        clearRange(blk.start, blk.end);
+        const idx = i;
+        const nodes = normalizeToNodes(renderFn(list[i], () => idx));
+        insertNodes(nodes, blk.end);
+      }
+
+      for (let i = prevLen; i < nextLen; i++) {
+        const s = document.createComment(`for-u-start:${i}`);
+        const e = document.createComment(`for-u-end:${i}`);
+        const idx = i;
+        const nodes = normalizeToNodes(renderFn(list[i], () => idx));
+        const f = document.createDocumentFragment();
+        f.appendChild(s);
         for (const n of nodes) f.appendChild(n);
-      });
-      end.parentNode!.insertBefore(f, end);
-      prevList = list.slice();
+        f.appendChild(e);
+        end.parentNode!.insertBefore(f, end);
+        unkeyedBlocks.push({ start: s, end: e });
+      }
+
+      for (let i = prevLen - 1; i >= nextLen; i--) {
+        const blk = unkeyedBlocks[i];
+        clearRange(blk.start, blk.end);
+        blk.start.parentNode?.removeChild(blk.start);
+        blk.end.parentNode?.removeChild(blk.end);
+        unkeyedBlocks.pop();
+      }
+
       return;
     }
+
     const nextOrder = list.map(kf);
     idxMap.clear();
     nextOrder.forEach((k, i) => idxMap.set(k, i));
@@ -475,7 +547,7 @@ export function For<T>(props: {
         const indexGetter = (): number => idxMap.get(k) ?? 0;
         const f = document.createDocumentFragment();
         f.appendChild(s);
-        const nodes = normalizeToNodes(render(item, indexGetter));
+        const nodes = normalizeToNodes(renderFn(item, indexGetter));
         for (const n of nodes) f.appendChild(n);
         f.appendChild(e);
         const after = cursor.nextSibling;
@@ -488,10 +560,10 @@ export function For<T>(props: {
           const range = document.createRange();
           range.setStartBefore(blk.start);
           range.setEndAfter(blk.end);
-          const frag = range.extractContents();
+          const extracted = range.extractContents();
           const after = cursor.nextSibling;
-          if (after) cursor.parentNode!.insertBefore(frag, after);
-          else cursor.parentNode!.appendChild(frag);
+          if (after) cursor.parentNode!.insertBefore(extracted, after);
+          else cursor.parentNode!.appendChild(extracted);
         }
       }
       cursor = blk.end;
@@ -522,20 +594,14 @@ export function Switch(props: { children: Child[]; fallback?: Child }) {
       const matchNode = child as unknown as MatchNode;
       if (matchNode?.__isMatch) {
         if (matchNode.condition()) {
-          const nodes = normalizeToNodes(matchNode.children);
-          const f = document.createDocumentFragment();
-          for (const n of nodes) f.appendChild(n);
-          end.parentNode!.insertBefore(f, end);
+          insertNodes(normalizeToNodes(matchNode.children), end);
           matched = true;
           break;
         }
       }
     }
     if (!matched && props.fallback) {
-      const nodes = normalizeToNodes(props.fallback);
-      const f = document.createDocumentFragment();
-      for (const n of nodes) f.appendChild(n);
-      end.parentNode!.insertBefore(f, end);
+      insertNodes(normalizeToNodes(props.fallback), end);
     }
   });
   return frag;
