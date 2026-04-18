@@ -1,5 +1,16 @@
-export * from "./solid.js";
-import { createEffect, createRoot, onCleanup } from "./solid.js";
+import * as SolidCore from "./solid.js";
+export const createRoot = SolidCore.createRoot as <T>(
+  fn: (dispose: () => void) => T,
+) => T;
+export const createSignal = SolidCore.createSignal as <T>(
+  value: T,
+  options?: { equals?: false | ((prev: T, next: T) => boolean) },
+) => [() => T, (v: T | ((prev: T) => T)) => T];
+export const createEffect = SolidCore.createEffect as <T>(
+  fn: (v?: T) => T,
+  value?: T,
+) => void;
+export const onCleanup = SolidCore.onCleanup as (fn: () => void) => void;
 
 const DISPOSE = Symbol("d");
 
@@ -408,7 +419,7 @@ export function h(
         children,
       });
     }) as Node;
-    (node as NodeWithDispose)[DISPOSE] = dispose;
+    if (node) (node as NodeWithDispose)[DISPOSE] = dispose;
     return node;
   }
 
@@ -477,107 +488,77 @@ export function For<T>(props: {
   frag.appendChild(start);
   frag.appendChild(end);
 
-  const unkeyedBlocks: IndexBlock[] = [];
+  const renderFn = typeof props.children === "function"
+    ? props.children as Renderer<T>
+    : (Array.isArray(props.children) && typeof props.children[0] === "function"
+      ? props.children[0] as Renderer<T>
+      : undefined);
 
-  const blocks = new Map<
-    Key,
-    { start: Comment; end: Comment; index: () => number }
-  >();
-  const idxMap = new Map<Key, number>();
+  if (!renderFn) return frag;
+
+  const cache = new Map<Key, {
+    nodes: Node[];
+    dispose: () => void;
+    setIndex: (i: number) => void;
+  }>();
 
   createEffect(() => {
-    const renderFn = typeof props.children === "function"
-      ? props.children as Renderer<T>
-      : (Array.isArray(props.children) &&
-          typeof props.children[0] === "function"
-        ? props.children[0] as Renderer<T>
-        : undefined);
-    if (!renderFn) return;
+    const list = props.each() || [];
+    const keyFn = props.key || ((item: T) => item as unknown as Key);
+    const parent = end.parentNode;
+    if (!parent) return;
 
-    const list = props.each();
-    const kf = props.key;
+    const newKeys = list.map(keyFn);
+    const newKeySet = new Set(newKeys);
 
-    if (!kf) {
-      const nextLen = list.length;
-      const prevLen = unkeyedBlocks.length;
-
-      for (let i = 0; i < Math.min(prevLen, nextLen); i++) {
-        const blk = unkeyedBlocks[i];
-        clearRange(blk.start, blk.end);
-        const idx = i;
-        const nodes = normalizeToNodes(renderFn(list[i], () => idx));
-        insertNodes(nodes, blk.end);
+    for (const [key, cached] of cache.entries()) {
+      if (!newKeySet.has(key)) {
+        cached.dispose();
+        cached.nodes.forEach((n) => {
+          disposeNode(n);
+          n.parentNode?.removeChild(n);
+        });
+        cache.delete(key);
       }
-
-      for (let i = prevLen; i < nextLen; i++) {
-        const s = document.createComment(`for-u-start:${i}`);
-        const e = document.createComment(`for-u-end:${i}`);
-        const idx = i;
-        const nodes = normalizeToNodes(renderFn(list[i], () => idx));
-        const f = document.createDocumentFragment();
-        f.appendChild(s);
-        for (const n of nodes) f.appendChild(n);
-        f.appendChild(e);
-        end.parentNode!.insertBefore(f, end);
-        unkeyedBlocks.push({ start: s, end: e });
-      }
-
-      for (let i = prevLen - 1; i >= nextLen; i--) {
-        const blk = unkeyedBlocks[i];
-        clearRange(blk.start, blk.end);
-        blk.start.parentNode?.removeChild(blk.start);
-        blk.end.parentNode?.removeChild(blk.end);
-        unkeyedBlocks.pop();
-      }
-
-      return;
     }
 
-    const nextOrder = list.map(kf);
-    idxMap.clear();
-    nextOrder.forEach((k, i) => idxMap.set(k, i));
     let cursor: Node = start;
-    for (let i = 0; i < list.length; i++) {
+    newKeys.forEach((key, i) => {
       const item = list[i];
-      const k = nextOrder[i];
-      let blk = blocks.get(k);
-      if (!blk) {
-        const s = document.createComment(`for-item-start:${String(k)}`);
-        const e = document.createComment(`for-item-end:${String(k)}`);
-        const indexGetter = (): number => idxMap.get(k) ?? 0;
-        const f = document.createDocumentFragment();
-        f.appendChild(s);
-        const nodes = normalizeToNodes(renderFn(item, indexGetter));
-        for (const n of nodes) f.appendChild(n);
-        f.appendChild(e);
-        const after = cursor.nextSibling;
-        if (after) start.parentNode!.insertBefore(f, after);
-        else start.parentNode!.appendChild(f);
-        blk = { start: s, end: e, index: indexGetter };
-        blocks.set(k, blk);
+      let cached = cache.get(key);
+
+      if (!cached) {
+        let setIndex: (i: number) => void = () => {};
+        let dispose: () => void = () => {};
+
+        const nodes = createRoot((d: Cleanup) => {
+          dispose = d;
+          const [index, _setIndex] = createSignal(i);
+          setIndex = _setIndex;
+          return normalizeToNodes(renderFn(item, index));
+        }) as Node[];
+
+        cached = { nodes, dispose, setIndex };
+        cache.set(key, cached);
       } else {
-        if (blk.start.previousSibling !== cursor) {
-          const range = document.createRange();
-          range.setStartBefore(blk.start);
-          range.setEndAfter(blk.end);
-          const extracted = range.extractContents();
-          const after = cursor.nextSibling;
-          if (after) cursor.parentNode!.insertBefore(extracted, after);
-          else cursor.parentNode!.appendChild(extracted);
-        }
+        cached.setIndex(i);
       }
-      cursor = blk.end;
-    }
-    const toRemove = new Set(blocks.keys());
-    nextOrder.forEach((k) => toRemove.delete(k));
-    toRemove.forEach((k) => {
-      const blk = blocks.get(k)!;
-      clearRange(blk.start, blk.end);
-      blk.start.parentNode?.removeChild(blk.start);
-      blk.end.parentNode?.removeChild(blk.end);
-      blocks.delete(k);
+
+      const firstNode = cached.nodes[0];
+      if (firstNode && firstNode.previousSibling !== cursor) {
+        const next = cursor.nextSibling;
+        cached.nodes.forEach((n) => {
+          if (next) parent.insertBefore(n, next);
+          else parent.appendChild(n);
+        });
+      }
+
+      if (cached.nodes.length > 0) {
+        cursor = cached.nodes[cached.nodes.length - 1];
+      }
     });
   });
+
   return frag;
 }
 

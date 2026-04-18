@@ -61,32 +61,29 @@ as a getter and calls `!!props.when()` internally.
 
 ---
 
-## 3. Lists — `.map()` instead of `<For>`
+## 3. The `each` prop in `<For>`
 
 **solid-lite**
 
 ```tsx
-// Plain .map() — no fine-grained reactivity per item
-{
-  navItems.map((item) => <Link href={item.href}>{item.label}</Link>);
-}
+// Pass the getter function reference directly
+<For each={items}>
+  {(item, index) => <li>{index() + 1}: {item.title}</li>}
+</For>;
 ```
 
 **SolidJS**
 
 ```tsx
-// <For> with fine-grained reactivity — only recreates changed items
-<For each={navItems()}>
-  {(item) => <Link href={item.href}>{item.label}</Link>}
+// Call the signal to pass the evaluated array
+<For each={items()}>
+  {(item, index) => <li>{index() + 1}: {item.title}</li>}
 </For>;
 ```
 
-In solid-lite, `.map()` works fine because `navItems` is a static array (not a
-signal). If the list were reactive, `.map()` would recreate all elements on every
-change — exactly like React, losing SolidJS's key advantage.
-
-solid-lite does have a custom `<For>` in `index.ts` that accepts `each` as a getter
-and performs keyed diffing, but its signature differs from the official `For`.
+In solid-lite, `<For>` now uses the same fine-grained logic as SolidJS. The
+only syntax difference is that solid-lite expects `props.each` to be the getter
+function itself, while SolidJS expects the evaluated value.
 
 ---
 
@@ -109,9 +106,8 @@ import { render } from "solid-js/web";
 render(() => <App />, document.getElementById("app")!);
 ```
 
-In SolidJS, `render` creates the reactive root internally. In solid-lite, `render`
-is a simple function that only calls `container.appendChild(node)` — so an explicit
-`createRoot` is needed to establish the reactive ownership context.
+In SolidJS, `render` creates the reactive root internally. In solid-lite, an
+explicit `createRoot` is needed to establish the reactive context for the app.
 
 ---
 
@@ -120,29 +116,29 @@ is a simple function that only calls `container.appendChild(node)` — so an exp
 **solid-lite**
 
 ```tsx
-// Accepts a static object or one with signal getters as values
-<div style={{ display: "flex", color: someSignal }}>
+// Supports signal getters nested inside the style object
+<div style={{ color: someSignal }}>
 ```
 
 **SolidJS**
 
 ```tsx
-// Same syntax, but the Babel compiler transforms it into optimized setAttribute calls
-<div style={{ display: "flex", color: someSignal() }}>
+// The compiler transforms this; syntax requires calling the signal
+<div style={{ color: someSignal() }}>
 ```
 
-In solid-lite, `setAttr` in `index.ts` inspects each value in the object: if a
-value is a zero-arity function, it creates a dedicated `createEffect` for that
-single CSS property.
+In solid-lite, `setAttr` creates a dedicated `createEffect` for each reactive
+property found in the style object.
 
 ---
 
 ## Summary
 
-| Aspect                 | solid-lite                       | SolidJS                    |
-| ---------------------- | -------------------------------- | -------------------------- |
-| Signal in JSX          | `{count}` (getter without `()`)  | `{count()}`                |
-| `<Show when>`          | getter: `when={fn}`              | value: `when={fn()}`       |
-| Reactive lists         | `.map()` (OK for static lists)   | `<For each={signal}>`      |
-| Mount                  | separate `createRoot` + `render` | `render(() => ..., el)`    |
-| Compiler               | none (pure runtime)              | Babel/Vite plugin required |
+| Aspect        | solid-lite                       | SolidJS                    |
+| ------------- | -------------------------------- | -------------------------- |
+| Signal in JSX | `{count}` (getter)               | `{count()}`                |
+| `<Show when>` | getter: `when={fn}`              | value: `when={fn()}`       |
+| `<For each>`  | getter: `each={fn}`              | value: `each={fn()}`       |
+| Mount         | separate `createRoot` + `render` | `render(() => ..., el)`    |
+| Style Object  | supports nested getters          | requires called signals    |
+| Compiler      | none (pure runtime)              | Babel/Vite plugin required |

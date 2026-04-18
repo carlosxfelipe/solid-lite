@@ -26,7 +26,7 @@ export function CollectionShowcase() {
   ];
 
   // Using sortBy from @std/collections
-  const sortedFeatures = sortBy(features, (it) => it.name);
+  const sortedFeatures = sortBy(features, (it: Feature) => it.name);
 
   const [randomTip, setRandomTip] = createSignal(sample(tips) || tips[0]);
 
