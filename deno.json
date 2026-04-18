@@ -25,6 +25,7 @@
     "stop": "lsof -ti:8000 | xargs kill -9 || true",
     "clean": "rm -rf dist",
     "build": "deno bundle --minify --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
+    "build:cdn": "deno run -A scripts/build_cdn.ts",
     "preview": "deno run --allow-read --allow-net -q scripts/server.ts",
     "dev": "deno task build && deno task preview",
     "start": "deno task stop && deno task clean && deno task build && deno task preview"
@@ -49,6 +50,8 @@
     "@std/http/file-server": "jsr:@std/http@^1.0.25/file-server",
     "@std/path": "jsr:@std/path@^1.1.4",
     "@std/testing": "jsr:@std/testing@^1.0.17",
+    "@std/fs": "jsr:@std/fs@^1.0.0",
+    "emit": "jsr:@deno/emit@^0.45.0",
     "@components/": "./src/components/",
     "@solid/": "./solid/",
     "@pages/": "./src/pages/",

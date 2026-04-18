@@ -9,7 +9,9 @@
 .idea/
 
 # Build
-dist/
+dist/*
+!dist/solid-lite.js
+!dist/solid-lite.min.js
 
 # Environment
 .env*
