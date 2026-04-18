@@ -24,7 +24,7 @@
   "tasks": {
     "stop": "lsof -ti:8000 | xargs kill -9 || true",
     "clean": "rm -rf dist",
-    "build": "deno bundle --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
+    "build": "deno bundle --minify --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
     "preview": "deno run --allow-read --allow-net -q scripts/server.ts",
     "dev": "deno task build && deno task preview",
     "start": "deno task stop && deno task clean && deno task build && deno task preview"

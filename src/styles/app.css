@@ -139,10 +139,6 @@ body {
   opacity: 0.9;
 }
 
-.btn-danger:hover {
-  opacity: 0.9;
-}
-
 .navbar {
   height: 3.5rem;
   background-color: hsl(var(--background));
@@ -181,6 +177,9 @@ body {
   color: hsl(var(--muted-foreground));
   text-decoration: none;
   transition: color 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .navbar-link:hover {
@@ -299,6 +298,9 @@ main {
     transition: all 0.2s;
     flex: 1;
     height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .mobile-nav-link:active {
