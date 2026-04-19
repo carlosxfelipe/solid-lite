@@ -1,4 +1,4 @@
-import { h, Show } from "@solid/index.ts";
+import { For, h, Show } from "@solid/index.ts";
 import { Navbar } from "@components/Navbar.tsx";
 import { currentPath, matchPath, Route } from "@router/index.tsx";
 import { Home } from "@pages/Home.tsx";
@@ -7,22 +7,40 @@ import { Contact } from "@pages/Contact.tsx";
 import { UserProfile } from "@pages/UserProfile.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
 
-const routePaths = ["/", "/about", "/contact", "/user/:id"];
+interface RouteDefinition {
+  path: string;
+  component: (props: Record<string, unknown>) => Node;
+  props?: Record<string, unknown>;
+}
+
+const routes: RouteDefinition[] = [
+  { path: "/", component: Home },
+  { path: "/about", component: About },
+  { path: "/contact", component: Contact },
+  { path: "/user/:id", component: UserProfile },
+];
 
 export function App() {
   const anyMatch = () => {
     const path = currentPath();
-    return routePaths.some((p) => !!matchPath(p, path));
+    return routes.some((r) => !!matchPath(r.path, path));
   };
 
   return (
     <div>
       <Navbar />
       <main>
-        <Route path="/" component={() => <Home />} />
-        <Route path="/about" component={() => <About />} />
-        <Route path="/contact" component={() => <Contact />} />
-        <Route path="/user/:id" component={() => <UserProfile />} />
+        <For each={() => routes}>
+          {(route) => {
+            const Comp = route.component;
+            return (
+              <Route
+                path={route.path}
+                component={() => <Comp {...(route.props || {})} />}
+              />
+            );
+          }}
+        </For>
 
         <Show when={() => !anyMatch()}>
           <NotFound />
