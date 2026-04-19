@@ -1,8 +1,8 @@
 import { serveDir, serveFile } from "@std/http/file-server";
-import { bold, cyan, green, yellow } from "@std/fmt/colors";
+import { bold, cyan, green, red, yellow } from "@std/fmt/colors";
 import { debounce } from "@std/async/debounce";
 
-const PORT = 8000;
+import { PORT } from "./config.ts";
 const IS_DEV = Deno.args.includes("--dev");
 const clients = new Set<ReadableStreamDefaultController>();
 
@@ -11,7 +11,7 @@ if (IS_DEV) {
   const rebuild = debounce(async () => {
     console.log(`  ${yellow("↻")}  Change detected, rebuilding...`);
     const cmd = new Deno.Command("deno", { args: ["task", "build"] });
-    const { success } = await cmd.output();
+    const { success, stderr } = await cmd.output();
     if (success) {
       console.log(`  ${green("✓")}  Build complete. Reloading browser...`);
       for (const ctrl of clients) {
@@ -21,6 +21,9 @@ if (IS_DEV) {
           clients.delete(ctrl);
         }
       }
+    } else {
+      const errorMsg = new TextDecoder().decode(stderr);
+      console.error(`  ${red("❌")}  Build failed:\n\n${errorMsg}`);
     }
   }, 200);
 

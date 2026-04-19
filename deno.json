@@ -22,7 +22,7 @@
     ]
   },
   "tasks": {
-    "stop": "lsof -ti:8000 | xargs kill -9 || true",
+    "stop": "deno run -A scripts/stop.ts",
     "clean": "rm -rf dist",
     "build": "deno bundle --minify --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
     "build:cdn": "deno run -A scripts/build_cdn.ts",

@@ -5,6 +5,8 @@ Deno. This project demonstrates how to create a Single Page Application (SPA)
 architecture with granular reactivity using the real DOM, without the need for a
 complex compiler.
 
+✨ **Custom Zero-Dependency Hot Reload**: As a proof of concept for modern web engineering, this project includes a hand-crafted Development Server featuring instant Hot Reload. Instead of relying on heavy third-party bundlers or WebSocket libraries, it leverages Deno's native `watchFs`, `Server-Sent Events (SSE)`, and dynamic on-the-fly HTML script injection to automatically rebuild and refresh the browser on save.
+
 ## Technical Features
 
 - **Fine-grained reactivity**: Uses signals and effects for surgical updates to
