@@ -25,9 +25,19 @@ complex compiler.
 
 The project uses Deno's task system for automation.
 
-### Start Application
+### Development (Hot Reload)
 
-To clean the previous build, compile the files, and start the preview server:
+To start the development server with Hot Reload enabled, run:
+
+```bash
+deno task dev
+```
+
+This command will watch for any changes in your `src/` and `solid/` directories, automatically rebuild the project, and refresh your browser instantly!
+
+### Production Preview
+
+If you want to clean the build cache to test the final, static distribution version (without Hot Reload), use:
 
 ```bash
 deno task start
@@ -71,7 +81,7 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 
 ## Important Note
 
-**SolidJS** is a trademark of its respective owners. 
+**SolidJS** is a trademark of its respective owners.
 
 This project, **Solid Lite**, is an independent, minimalist, and **strictly experimental** implementation of a reactive runtime inspired by the principles of SolidJS. It was created solely for educational purposes to demonstrate how fine-grained reactivity and Single Page Application (SPA) architectures can be built using the native DOM on Deno.
 
@@ -80,5 +90,3 @@ This project, **Solid Lite**, is an independent, minimalist, and **strictly expe
 ## License
 
 MIT
-
-

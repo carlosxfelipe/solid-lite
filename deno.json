@@ -26,8 +26,8 @@
     "clean": "rm -rf dist",
     "build": "deno bundle --minify --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
     "build:cdn": "deno run -A scripts/build_cdn.ts",
-    "preview": "deno run --allow-read --allow-net -q scripts/server.ts",
-    "dev": "deno task build && deno task preview",
+    "preview": "deno run -A scripts/server.ts",
+    "dev": "deno task stop && deno task clean && deno run -A scripts/server.ts --dev",
     "start": "deno task stop && deno task clean && deno task build && deno task preview"
   },
   "compilerOptions": {
@@ -47,6 +47,7 @@
   "imports": {
     "@std/collections": "jsr:@std/collections@^1.1.6",
     "@std/fmt": "jsr:@std/fmt@^1.0.9",
+    "@std/async": "jsr:@std/async@^1.0.0",
     "@std/http/file-server": "jsr:@std/http@^1.0.25/file-server",
     "@std/path": "jsr:@std/path@^1.1.4",
     "@std/testing": "jsr:@std/testing@^1.0.17",

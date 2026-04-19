@@ -6,6 +6,7 @@
     "jsr:@std/assert@0.223": "0.223.0",
     "jsr:@std/assert@^1.0.17": "1.0.19",
     "jsr:@std/assert@~0.218.2": "0.218.2",
+    "jsr:@std/async@1": "1.2.0",
     "jsr:@std/async@^1.1.0": "1.2.0",
     "jsr:@std/bytes@~0.218.2": "0.218.2",
     "jsr:@std/cli@^1.0.28": "1.0.28",
@@ -151,7 +152,7 @@
       "integrity": "87bdc2700fa98249d48a17cd72413352d3d3680dcfbdb64947fd0982d6bbf681",
       "dependencies": [
         "jsr:@std/assert@^1.0.17",
-        "jsr:@std/async",
+        "jsr:@std/async@^1.1.0",
         "jsr:@std/data-structures",
         "jsr:@std/fs@^1.0.22",
         "jsr:@std/internal",
@@ -162,6 +163,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@deno/emit@0.45",
+      "jsr:@std/async@1",
       "jsr:@std/collections@^1.1.6",
       "jsr:@std/fmt@^1.0.9",
       "jsr:@std/fs@1",
