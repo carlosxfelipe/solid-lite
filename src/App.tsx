@@ -5,6 +5,7 @@ import { Home } from "@pages/Home.tsx";
 import { About } from "@pages/About.tsx";
 import { Contact } from "@pages/Contact.tsx";
 import { UserProfile } from "@pages/UserProfile.tsx";
+import { Login } from "@pages/Login.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
 
 interface RouteDefinition {
@@ -18,7 +19,10 @@ const routes: RouteDefinition[] = [
   { path: "/about", component: About },
   { path: "/contact", component: Contact },
   { path: "/user/:id", component: UserProfile },
+  { path: "/login", component: Login },
 ];
+
+const hideNavbarPaths = ["/login"];
 
 export function App() {
   const anyMatch = () => {
@@ -26,9 +30,13 @@ export function App() {
     return routes.some((r) => !!matchPath(r.path, path));
   };
 
+  const showNavbar = () => !hideNavbarPaths.includes(currentPath());
+
   return (
     <div>
-      <Navbar />
+      <Show when={showNavbar}>
+        {() => <Navbar />}
+      </Show>
       <main>
         <For each={() => routes}>
           {(route) => {
@@ -43,7 +51,7 @@ export function App() {
         </For>
 
         <Show when={() => !anyMatch()}>
-          <NotFound />
+          {() => <NotFound />}
         </Show>
       </main>
     </div>

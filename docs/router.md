@@ -21,7 +21,7 @@ const routePaths = ["/", "/about", "/contact", "/user/:id"];
 
 export function App() {
   /**
-   * anyMatch checks if the current browser path matches 
+   * anyMatch checks if the current browser path matches
    * any of the defined route patterns.
    */
   const anyMatch = () => {
@@ -52,10 +52,13 @@ export function App() {
 ## Key Concepts
 
 ### Route Component
+
 The `<Route />` component is reactive. It listens to the `currentPath()` signal and only renders its `component` when the `path` prop matches the current location.
 
 ### matchPath Utility
+
 `matchPath` handles both static paths (e.g., `/about`) and dynamic segments (e.g., `/user/:id`). It uses regex to extract parameters which are then accessible via the `params()` signal.
 
 ### Handling 404s
+
 Since `<Route />` components render independently, the `<Show />` component combined with an `anyMatch` helper is used to display a "Not Found" page when no routes are active.
