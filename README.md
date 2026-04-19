@@ -66,3 +66,19 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 - `/src`: Application source code (components, pages, styles).
 - `/scripts`: Auxiliary automation tools and local server.
 - `/public`: Static assets (favicon, redirects, etc.).
+
+---
+
+## Important Note
+
+**SolidJS** is a trademark of its respective owners. 
+
+This project, **Solid Lite**, is an independent, minimalist, and **strictly experimental** implementation of a reactive runtime inspired by the principles of SolidJS. It was created solely for educational purposes to demonstrate how fine-grained reactivity and Single Page Application (SPA) architectures can be built using the native DOM on Deno.
+
+**Solid Lite has no commercial or business objectives.** It is a study of architectural concepts and a hobbyist experiment in building lean web runtimes.
+
+## License
+
+MIT
+
+
