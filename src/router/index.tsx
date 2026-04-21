@@ -86,6 +86,14 @@ interface LinkProps {
 }
 
 export function Link(props: LinkProps) {
+  const isMalicious = (href: string) => {
+    const lower = href.trim().toLowerCase();
+    return lower.startsWith("javascript:") || lower.startsWith("data:") ||
+      lower.startsWith("vbscript:");
+  };
+
+  const safeHref = () => isMalicious(props.href) ? "about:blank" : props.href;
+
   const handleClick = (e: MouseEvent) => {
     if (
       e.button !== 0 ||
@@ -98,12 +106,14 @@ export function Link(props: LinkProps) {
     }
 
     e.preventDefault();
-    navigate(props.href);
+    if (!isMalicious(props.href)) {
+      navigate(props.href);
+    }
   };
 
   return (
     <a
-      href={props.href}
+      href={safeHref()}
       class={props.class}
       style={props.style}
       onClick={handleClick}

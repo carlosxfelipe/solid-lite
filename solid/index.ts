@@ -148,8 +148,42 @@ function setAttr(el: Element, name: string, value: unknown) {
   if (name === "className") name = "class";
 
   if (name === "dangerouslySetInnerHTML" && isInnerHTML(value)) {
-    const html = value.__html;
-    (el as HTMLElement).innerHTML = html == null ? "" : String(html);
+    const rawHtml = value.__html == null ? "" : String(value.__html);
+
+    // Sanitize HTML securely using DOMParser (native browser API)
+    const doc = new DOMParser().parseFromString(rawHtml, "text/html");
+
+    // Strip scripts
+    const scripts = doc.querySelectorAll("script");
+    for (let i = 0; i < scripts.length; i++) {
+      scripts[i].parentNode?.removeChild(scripts[i]);
+    }
+
+    // Strip malicious inline events and links
+    const all = doc.querySelectorAll("*");
+    for (let i = 0; i < all.length; i++) {
+      const node = all[i];
+      for (let j = node.attributes.length - 1; j >= 0; j--) {
+        const attr = node.attributes[j];
+        if (attr.name.toLowerCase().startsWith("on")) {
+          node.removeAttribute(attr.name);
+        }
+        if (
+          attr.name.toLowerCase() === "href" ||
+          attr.name.toLowerCase() === "src"
+        ) {
+          const val = attr.value.trim().toLowerCase();
+          if (
+            val.startsWith("javascript:") || val.startsWith("data:") ||
+            val.startsWith("vbscript:")
+          ) {
+            node.setAttribute(attr.name, "about:blank");
+          }
+        }
+      }
+    }
+
+    (el as HTMLElement).innerHTML = doc.body.innerHTML;
     return;
   }
 
