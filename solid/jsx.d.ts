@@ -4,7 +4,9 @@ declare global {
   namespace JSX {
     type StyleScalar = string | number | null | undefined;
     type StyleValue = StyleScalar | (() => StyleScalar);
-    type StyleObject = Record<string, StyleValue>;
+    type StyleObject =
+      & { [K in keyof globalThis.CSSStyleDeclaration]?: StyleValue }
+      & Record<string, StyleValue>;
 
     type Element = Node;
 
