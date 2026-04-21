@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
-import { createSignal, createEffect, createRoot, onCleanup } from "./index.ts";
+import { createEffect, createRoot, createSignal, onCleanup } from "./index.ts";
 
 Deno.test("Core Reactivity: createSignal", () => {
   createRoot((dispose) => {
@@ -26,7 +26,7 @@ Deno.test("Core Reactivity: createEffect reacting to changes", () => {
       effectInvocations++;
       lastSeenName = name();
     });
-    
+
     return dispose;
   });
 
@@ -47,31 +47,32 @@ Deno.test("Core Reactivity: createEffect reacting to changes", () => {
 });
 
 Deno.test("Core Reactivity: Effect Batching", () => {
-    let executions = 0;
-    let setAExt: (v: number) => void = () => {};
-    let setBExt: (v: number) => void = () => {};
+  let executions = 0;
+  let setAExt: (v: number) => void = () => {};
+  let setBExt: (v: number) => void = () => {};
 
-    const disposeRoot = createRoot((dispose) => {
-      const [a, setA] = createSignal(1);
-      const [b, setB] = createSignal(2);
-      setAExt = setA; setBExt = setB;
-  
-      createEffect(() => {
-        executions++;
-        a() + b();
-      });
-      return dispose;
+  const disposeRoot = createRoot((dispose) => {
+    const [a, setA] = createSignal(1);
+    const [b, setB] = createSignal(2);
+    setAExt = setA;
+    setBExt = setB;
+
+    createEffect(() => {
+      executions++;
+      a() + b();
     });
+    return dispose;
+  });
 
-    assertEquals(executions, 1);
-  
-    setAExt(10);
-    assertEquals(executions, 2);
-  
-    setBExt(20);
-    assertEquals(executions, 3);
-  
-    disposeRoot();
+  assertEquals(executions, 1);
+
+  setAExt(10);
+  assertEquals(executions, 2);
+
+  setBExt(20);
+  assertEquals(executions, 3);
+
+  disposeRoot();
 });
 
 Deno.test("Core Reactivity: onCleanup lifecycle", () => {
@@ -83,7 +84,7 @@ Deno.test("Core Reactivity: onCleanup lifecycle", () => {
     setSignalExt = setCount;
 
     createEffect(() => {
-      count(); 
+      count();
       onCleanup(() => cleanupsFired++);
     });
 
