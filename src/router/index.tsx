@@ -58,7 +58,7 @@ if (globalThis.addEventListener) {
  */
 interface RouteProps {
   path: string;
-  component: () => JSX.Element;
+  component: () => JSX.Element | null;
 }
 
 export function Route(props: RouteProps) {

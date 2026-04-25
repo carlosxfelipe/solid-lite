@@ -79,6 +79,27 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 - `/scripts`: Auxiliary automation tools and local server.
 - `/public`: Static assets (favicon, redirects, etc.).
 
+## Authentication & Security
+
+The project includes a reactive Authentication system with protected routes and a secure navigation guard.
+
+### Testing the Login
+
+To test the authenticated flow, use the following demo credentials:
+
+- **Email**: `admin@example.com`
+- **Password**: `admin123`
+
+### Current Implementation & Future Backend
+
+The current implementation uses a **Mock Auth** system for demonstration purposes. It persists a mock token in `localStorage` to simulate a real-world JWT flow.
+
+The architecture is fully prepared for a backend integration. You can find several `TODO` markers in `src/router/auth.ts` which outline the steps to transition from mocks to a real API:
+
+- **Sync Guard**: Prevents UI flashing by blocking protected renders before the reactive guard fires.
+- **`authFetch`**: A pre-built wrapper that automatically injects `Bearer` tokens into API requests.
+- **Centralized Logic**: All auth state management is isolated in `auth.ts`, meaning the rest of the application remains untouched when connecting a real server.
+
 ---
 
 ## Important Note

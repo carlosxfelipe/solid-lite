@@ -12,15 +12,17 @@ export interface RouteDefinition {
   path: string;
   component: (props: Record<string, unknown>) => Node;
   props?: Record<string, unknown>;
+  /** If true, redirects to "/" when user is not authenticated. */
+  protected?: boolean;
 }
 
 /** All registered application routes */
 export const routes: RouteDefinition[] = [
   { path: "/", component: Login },
-  { path: "/home", component: Home },
-  { path: "/about", component: About },
-  { path: "/contact", component: Contact },
-  { path: "/user/:id", component: UserProfile },
+  { path: "/home", component: Home, protected: true },
+  { path: "/about", component: About, protected: true },
+  { path: "/contact", component: Contact, protected: true },
+  { path: "/user/:id", component: UserProfile, protected: true },
 ];
 
 /** Public routes that don't require authentication */
@@ -70,7 +72,12 @@ export function AppRoutes() {
           return (
             <Route
               path={route.path}
-              component={() => <Comp {...(route.props || {})} />}
+              component={() => {
+                // Synchronous guard: blocks render before createEffect fires,
+                // preventing a flash of protected content on the first frame.
+                if (route.protected && !isLoggedIn()) return null;
+                return <Comp {...(route.props || {})} />;
+              }}
             />
           );
         }}

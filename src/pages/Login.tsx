@@ -9,13 +9,13 @@ export function Login() {
   const [password, setPassword] = createSignal("");
   const [error, setError] = createSignal("");
 
-  const handleSubmit = (e: Event) => {
+  const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    if (email() === "admin@example.com" && password() === "admin123") {
-      login();
+    try {
+      await login(email(), password());
       navigate("/home");
-    } else {
-      setError("Invalid email or password. Try admin@example.com / admin123");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed.");
     }
   };
 
