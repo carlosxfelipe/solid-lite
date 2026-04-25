@@ -42,7 +42,8 @@ export async function login(email: string, password: string): Promise<void> {
       // Generate a fake JWT payload expiring in 100 years
       const future = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 100;
       const payload = btoa(JSON.stringify({ sub: email, exp: future }));
-      const mockToken = `mock.current.${payload}`;
+      // Format: header.payload.signature (payload must be at index 1)
+      const mockToken = `mock.${payload}.fake-signature`;
 
       sessionStorage.setItem(TOKEN_KEY, mockToken);
       setIsLoggedIn(true);

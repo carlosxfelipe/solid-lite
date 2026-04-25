@@ -1,6 +1,7 @@
 import { createEffect, For, Fragment, h, Show } from "@solid/index.ts";
 import { currentPath, matchPath, navigate, Route } from "@router/index.tsx";
 import { isLoggedIn } from "@router/auth.ts";
+
 import { Home } from "@pages/Home.tsx";
 import { About } from "@pages/About.tsx";
 import { Contact } from "@pages/Contact.tsx";
@@ -8,61 +9,82 @@ import { UserProfile } from "@pages/UserProfile.tsx";
 import { Login } from "@pages/Login.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
 
+/**
+ * MASTER AUTH SWITCH
+ * Set to false to disable all login requirements and make Home the root page.
+ */
+const IS_AUTH_ENABLED = true;
+
 export interface RouteDefinition {
   path: string;
   component: (props: Record<string, unknown>) => Node;
   props?: Record<string, unknown>;
-  /** If true, redirects to "/" when user is not authenticated. */
   protected?: boolean;
 }
 
-/** All registered application routes */
+/**
+ * Routes definition.
+ * Automatically adjusts based on IS_AUTH_ENABLED flag.
+ */
 export const routes: RouteDefinition[] = [
-  { path: "/", component: Login },
-  { path: "/home", component: Home, protected: true },
-  { path: "/about", component: About, protected: true },
-  { path: "/contact", component: Contact, protected: true },
-  { path: "/user/:id", component: UserProfile, protected: true },
+  {
+    path: "/",
+    component: IS_AUTH_ENABLED ? Login : Home,
+  },
+  {
+    path: "/home",
+    component: Home,
+    protected: IS_AUTH_ENABLED,
+  },
+  {
+    path: "/about",
+    component: About,
+    protected: IS_AUTH_ENABLED,
+  },
+  {
+    path: "/contact",
+    component: Contact,
+    protected: IS_AUTH_ENABLED,
+  },
+  {
+    path: "/user/:id",
+    component: UserProfile,
+    protected: IS_AUTH_ENABLED,
+  },
 ];
 
-/** Public routes that don't require authentication */
-const publicPaths = ["/"];
-
 /** Paths where the navbar should be hidden */
-export const hideNavbarPaths = ["/"];
+export const hideNavbarPaths = IS_AUTH_ENABLED ? ["/", "/login"] : [];
 
 /**
- * Auth Route Guard — call inside a reactive root (e.g. App).
- * - If logged in and on login page → redirect to /home
- * - If NOT logged in and on a protected page → redirect to /
+ * Auth Route Guard.
  */
 export function useAuthGuard() {
   createEffect(() => {
+    if (!IS_AUTH_ENABLED) return; // Exit early if auth is disabled
+
     const path = currentPath();
     const loggedIn = isLoggedIn();
 
+    // Redirect logged-in users away from login page
     if (path === "/" && loggedIn) {
       navigate("/home");
       return;
     }
 
-    if (!loggedIn && !publicPaths.includes(path)) {
+    // Dynamic check for protected routes
+    const currentRoute = routes.find((r) => !!matchPath(r.path, path));
+    if (currentRoute?.protected && !loggedIn) {
       navigate("/");
     }
   });
 }
 
-/**
- * Checks if the current path matches any registered route.
- */
 export const anyRouteMatch = () => {
   const path = currentPath();
   return routes.some((r) => !!matchPath(r.path, path));
 };
 
-/**
- * AppRoutes — renders all routes and the 404 fallback.
- */
 export function AppRoutes() {
   return (
     <>
@@ -73,9 +95,10 @@ export function AppRoutes() {
             <Route
               path={route.path}
               component={() => {
-                // Synchronous guard: blocks render before createEffect fires,
-                // preventing a flash of protected content on the first frame.
-                if (route.protected && !isLoggedIn()) return null;
+                // Sync guard
+                if (IS_AUTH_ENABLED && route.protected && !isLoggedIn()) {
+                  return null;
+                }
                 return <Comp {...(route.props || {})} />;
               }}
             />

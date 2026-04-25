@@ -108,6 +108,6 @@ uv run fastapi run main.py
 
 Once the backend is running at `http://localhost:8000`, update `src/router/auth.ts` in the Solid Lite project:
 
-1.  Set `API_BASE` to `http://localhost:8000`.
-2.  The framework will automatically store the `access_token` in `sessionStorage` (as `authToken`) and handle JWT expiry checks.
-3.  Use `authFetch()` for subsequent authenticated calls to endpoints like `/api/user/profile`.
+1. Set `API_BASE` to `http://localhost:8000`.
+2. The framework will automatically store the `access_token` in `sessionStorage` (as `authToken`) and handle JWT expiry checks.
+3. Use `authFetch()` for subsequent authenticated calls to endpoints like `/api/user/profile`.

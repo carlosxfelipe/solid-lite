@@ -83,6 +83,8 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 
 Solid Lite features a "batteries-included" authentication system that supports both local development (mock mode) and real backend integration.
 
+By default, authentication is **enabled** (`const IS_AUTH_ENABLED = true`) in `src/router/routes.tsx`.
+
 ### Quick Test (Mock Mode)
 
 By default, the project is configured in **Mock Mode** (with an empty `API_BASE` in `auth.ts`). You can test the authenticated flow immediately using:
