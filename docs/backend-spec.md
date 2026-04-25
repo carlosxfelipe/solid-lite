@@ -89,21 +89,25 @@ if __name__ == "__main__":
 The backend runs on its default port **8000**, while the Solid Lite frontend runs on port **3000**.
 
 ### Development Mode
+
 Uses auto-reload for a better developer experience.
+
 ```bash
 uv run fastapi dev main.py
 ```
 
 ### Production Mode
+
 Optimized for performance.
+
 ```bash
 uv run fastapi run main.py
 ```
 
 ## 4. Frontend Integration
 
-Once the backend is running at `http://localhost:8080`, update `src/router/auth.ts` in the Solid Lite project:
+Once the backend is running at `http://localhost:8000`, update `src/router/auth.ts` in the Solid Lite project:
 
-1.  Update `login()` to fetch from `http://localhost:8080/api/auth/login`.
-2.  Store the `access_token` in `localStorage` as `authToken`.
-3.  Use `authFetch()` for subsequent calls to `http://localhost:8080/api/user/profile`.
+1.  Set `API_BASE` to `http://localhost:8000`.
+2.  The framework will automatically store the `access_token` in `sessionStorage` (as `authToken`) and handle JWT expiry checks.
+3.  Use `authFetch()` for subsequent authenticated calls to endpoints like `/api/user/profile`.

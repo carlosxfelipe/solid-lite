@@ -81,24 +81,31 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 
 ## Authentication & Security
 
-The project includes a reactive Authentication system with protected routes and a secure navigation guard.
+Solid Lite features a "batteries-included" authentication system that supports both local development (mock mode) and real backend integration.
 
-### Testing the Login
+### Quick Test (Mock Mode)
 
-To test the authenticated flow, use the following demo credentials:
+By default, the project is configured in **Mock Mode** (with an empty `API_BASE` in `auth.ts`). You can test the authenticated flow immediately using:
 
 - **Email**: `admin@example.com`
 - **Password**: `admin123`
 
-### Current Implementation & Future Backend
+### Real Backend Integration
 
-The current implementation uses a **Mock Auth** system for demonstration purposes. It persists a mock token in `localStorage` to simulate a real-world JWT flow.
+To connect to a real server (e.g., following the [Backend Specification](./docs/backend-spec.md)):
 
-The architecture is fully prepared for a backend integration. You can find several `TODO` markers in `src/router/auth.ts` which outline the steps to transition from mocks to a real API:
+1. Open `src/router/auth.ts`.
+2. Set `API_BASE` to your backend URL (e.g., `https://your-api.com`).
+3. The `login` function will automatically switch to performing real `fetch` requests and handling JWT tokens.
 
-- **Sync Guard**: Prevents UI flashing by blocking protected renders before the reactive guard fires.
-- **`authFetch`**: A pre-built wrapper that automatically injects `Bearer` tokens into API requests.
-- **Centralized Logic**: All auth state management is isolated in `auth.ts`, meaning the rest of the application remains untouched when connecting a real server.
+### Security Features
+
+- **sessionStorage**: JWT tokens are stored in `sessionStorage` instead of `localStorage`. This ensures tokens are cleared automatically when the tab is closed, reducing the XSS exposure window.
+- **Proactive Expiry Check**: The framework decodes the JWT `exp` claim and automatically logs the user out if the token expires, even before sending a request.
+- **`authFetch`**: A secure fetch wrapper that:
+  - Automatically injects the `Authorization: Bearer <token>` header.
+  - Triggers an automatic `logout()` if the server returns a `401 Unauthorized` status.
+- **Sync Route Guard**: Prevents UI flashing by blocking protected renders until the reactive auth state is verified.
 
 ---
 
