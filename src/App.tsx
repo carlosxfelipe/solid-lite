@@ -1,6 +1,6 @@
-import { For, h, Show } from "@solid/index.ts";
+import { createEffect, For, h, Show } from "@solid/index.ts";
 import { Navbar } from "@components/Navbar.tsx";
-import { currentPath, matchPath, Route } from "@router/index.tsx";
+import { currentPath, matchPath, navigate, Route } from "@router/index.tsx";
 import { Home } from "@pages/Home.tsx";
 import { About } from "@pages/About.tsx";
 import { Contact } from "@pages/Contact.tsx";
@@ -15,16 +15,24 @@ interface RouteDefinition {
 }
 
 const routes: RouteDefinition[] = [
-  { path: "/", component: Home },
+  { path: "/", component: Login },
+  { path: "/home", component: Home },
   { path: "/about", component: About },
   { path: "/contact", component: Contact },
   { path: "/user/:id", component: UserProfile },
-  { path: "/login", component: Login },
 ];
 
-const hideNavbarPaths = ["/login"];
+const hideNavbarPaths = ["/"];
 
 export function App() {
+  createEffect(() => {
+    const path = currentPath();
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (path === "/" && isLoggedIn) {
+      navigate("/home");
+    }
+  });
+
   const anyMatch = () => {
     const path = currentPath();
     return routes.some((r) => !!matchPath(r.path, path));
@@ -34,9 +42,7 @@ export function App() {
 
   return (
     <div>
-      <Show when={showNavbar}>
-        {() => <Navbar />}
-      </Show>
+      <Show when={showNavbar}>{() => <Navbar />}</Show>
       <main>
         <For each={() => routes}>
           {(route) => {
@@ -50,9 +56,7 @@ export function App() {
           }}
         </For>
 
-        <Show when={() => !anyMatch()}>
-          {() => <NotFound />}
-        </Show>
+        <Show when={() => !anyMatch()}>{() => <NotFound />}</Show>
       </main>
     </div>
   );

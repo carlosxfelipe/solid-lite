@@ -1,13 +1,21 @@
-import { createSignal, h } from "@solid/index.ts";
+import { createSignal, h, Show } from "@solid/index.ts";
 import { navigate } from "@router/index.tsx";
 import { Icon } from "@components/Icon.tsx";
 
 export function Login() {
   const [showPassword, setShowPassword] = createSignal(false);
+  const [email, setEmail] = createSignal("");
+  const [password, setPassword] = createSignal("");
+  const [error, setError] = createSignal("");
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
-    navigate("/");
+    if (email() === "admin@example.com" && password() === "admin123") {
+      localStorage.setItem("isLoggedIn", "true");
+      navigate("/home");
+    } else {
+      setError("Invalid email or password. Try admin@example.com / admin123");
+    }
   };
 
   return (
@@ -26,13 +34,31 @@ export function Login() {
           Welcome back to Solid Lite.
         </p>
 
+        <Show when={() => !!error()}>
+          {() => (
+            <div
+              style={{
+                color: "red",
+                "margin-bottom": "1rem",
+                "text-align": "center",
+                "font-size": "0.875rem",
+              }}
+            >
+              {error()}
+            </div>
+          )}
+        </Show>
+
         <form onSubmit={handleSubmit}>
           <div class="form-group">
             <label class="form-label">Email</label>
             <input
               type="email"
               class="form-input"
-              placeholder="name@example.com"
+              placeholder="admin@example.com"
+              value={email}
+              onInput={(e: Event) =>
+                setEmail((e.target as HTMLInputElement).value)}
               required
             />
           </div>
@@ -44,7 +70,10 @@ export function Login() {
                 type={() => (showPassword() ? "text" : "password")}
                 class="form-input"
                 style={{ "padding-right": "2.5rem" }}
-                placeholder="••••••••"
+                placeholder="admin123"
+                value={password}
+                onInput={(e: Event) =>
+                  setPassword((e.target as HTMLInputElement).value)}
                 required
               />
               <button
