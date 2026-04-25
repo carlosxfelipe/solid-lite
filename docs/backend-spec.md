@@ -20,14 +20,16 @@ uv add "fastapi[standard]" "PyJWT" "passlib[bcrypt]"
 Create a `main.py` file with the following content. This implementation includes CORS support, JWT token generation, and the endpoints required by the frontend.
 
 ```python
-from fastapi import FastAPI, HTTPException, Depends, status
+import uvicorn
+import os
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 import jwt
 
 # Configuration
-SECRET_KEY = "your-super-secret-key-change-this"
+SECRET_KEY = os.environ.get("SECRET_KEY", "your-super-secret-key-change-this")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -36,7 +38,7 @@ app = FastAPI()
 # IMPORTANT: Configure CORS for your Solid Lite frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"], # Your new frontend URL
+    allow_origins=["*"], # Updated to allow connections from any origin for deployment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -76,6 +78,10 @@ async def login(request: LoginRequest):
 @app.get("/api/user/profile")
 async def get_profile():
     return {"email": "admin@example.com", "status": "active"}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
 ```
 
 ## 3. Running the Server
