@@ -2,10 +2,11 @@ import { h } from "@solid/index.ts";
 import { navigate } from "@router/index.tsx";
 import { Counter } from "@components/Counter.tsx";
 import { CollectionShowcase } from "@components/CollectionShowcase.tsx";
+import { logout } from "@router/auth.ts";
 
 export function Home() {
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
+    logout();
     navigate("/");
   };
 

@@ -4,7 +4,7 @@ import { Icon, IconName } from "@components/Icon.tsx";
 
 export function Navbar() {
   const navItems: { href: string; label: string; icon: IconName }[] = [
-    { href: "/", label: "Home", icon: "Home" },
+    { href: "/home", label: "Home", icon: "Home" },
     { href: "/about", label: "About", icon: "Info" },
     { href: "/contact", label: "Contact", icon: "Mail" },
     { href: "/user/123", label: "Profile", icon: "User" },

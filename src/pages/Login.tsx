@@ -1,6 +1,7 @@
 import { createSignal, h, Show } from "@solid/index.ts";
 import { navigate } from "@router/index.tsx";
 import { Icon } from "@components/Icon.tsx";
+import { login } from "@router/auth.ts";
 
 export function Login() {
   const [showPassword, setShowPassword] = createSignal(false);
@@ -11,7 +12,7 @@ export function Login() {
   const handleSubmit = (e: Event) => {
     e.preventDefault();
     if (email() === "admin@example.com" && password() === "admin123") {
-      localStorage.setItem("isLoggedIn", "true");
+      login();
       navigate("/home");
     } else {
       setError("Invalid email or password. Try admin@example.com / admin123");
