@@ -1,15 +1,48 @@
+/**
+ * @module
+ * Solid Lite - A minimalist implementation of the SolidJS reactivity engine.
+ *
+ * This module provides fine-grained reactivity and a runtime JSX-like (HyperScript)
+ * engine that works directly with the real DOM.
+ */
+
 import * as SolidCore from "./solid.js";
+/**
+ * Creates a new reactive root. Computations created inside a root are
+ * automatically disposed when the root is disposed.
+ *
+ * @param fn The function to run inside the root.
+ * @returns The value returned by the function.
+ */
 export const createRoot = SolidCore.createRoot as <T>(
   fn: (dispose: () => void) => T,
 ) => T;
+/**
+ * Creates a reactive signal.
+ *
+ * @param value The initial value of the signal.
+ * @param options Optional settings like a custom equality function.
+ * @returns A tuple containing a getter and a setter.
+ */
 export const createSignal = SolidCore.createSignal as <T>(
   value: T,
   options?: { equals?: false | ((prev: T, next: T) => boolean) },
 ) => [() => T, (v: T | ((prev: T) => T)) => T];
+/**
+ * Creates a reactive effect that runs when its dependencies change.
+ *
+ * @param fn The function to run as an effect.
+ * @param value Initial value passed to the function on first run.
+ */
 export const createEffect = SolidCore.createEffect as <T>(
   fn: (v?: T) => T,
   value?: T,
 ) => void;
+/**
+ * Registers a cleanup function that runs when the current scope is disposed.
+ *
+ * @param fn The cleanup function.
+ */
 export const onCleanup = SolidCore.onCleanup as (fn: () => void) => void;
 
 const DISPOSE = Symbol("d");
@@ -64,6 +97,9 @@ function isInnerHTML(x: unknown): x is InnerHTML {
   return !!x && typeof x === "object" && "__html" in (x as object);
 }
 
+/**
+ * Represents a valid child node that can be rendered.
+ */
 export type Child =
   | Node
   | string
@@ -439,6 +475,14 @@ const SVG_TAGS = new Set([
   "desc",
 ]);
 
+/**
+ * The HyperScript function for creating DOM nodes or components.
+ *
+ * @param tag The tag name (string) or a Component function.
+ * @param props The attributes or props for the element/component.
+ * @param children The children nodes/elements.
+ * @returns A DOM Node.
+ */
 export function h(
   tag: string | Component<Record<string, unknown>>,
   props: Record<string, unknown> | null | undefined,
@@ -474,6 +518,9 @@ export function h(
   return el;
 }
 
+/**
+ * A virtual component that groups multiple children without adding a parent DOM node.
+ */
 export function Fragment(props: { children?: Child[] } = {}, ...kids: Child[]) {
   const list = (props.children ?? kids) as Child[];
   const f = document.createDocumentFragment();
@@ -484,11 +531,24 @@ export function Fragment(props: { children?: Child[] } = {}, ...kids: Child[]) {
   return f;
 }
 
+/**
+ * Renders a Node into a container, clearing the container's previous content.
+ *
+ * @param node The node to render.
+ * @param container The DOM element to render into.
+ */
 export function render(node: Node, container: Element) {
   container.textContent = "";
   container.appendChild(node);
 }
 
+/**
+ * A component for conditional rendering.
+ *
+ * @param props.when A function that returns a truthy value to show children.
+ * @param props.children The content to show when true.
+ * @param props.fallback The content to show when false.
+ */
 export function Show(
   props: { when: () => unknown; children: Child; fallback?: Child },
 ) {
@@ -511,6 +571,13 @@ export function Show(
 
 type IndexBlock = { start: Comment; end: Comment };
 
+/**
+ * A component for rendering lists with efficient DOM reuse.
+ *
+ * @param props.each A function that returns an array to iterate over.
+ * @param props.key An optional function to provide a unique key for each item.
+ * @param props.children A renderer function that receives the item and an index signal.
+ */
 export function For<T>(props: {
   each: () => T[];
   key?: (item: T) => Key;
@@ -596,6 +663,9 @@ export function For<T>(props: {
   return frag;
 }
 
+/**
+ * A component for rendering the first Match that satisfies its condition.
+ */
 export function Switch(props: { children: Child[]; fallback?: Child }) {
   const start = document.createComment("switch-start");
   const end = document.createComment("switch-end");
@@ -622,6 +692,9 @@ export function Switch(props: { children: Child[]; fallback?: Child }) {
   return frag;
 }
 
+/**
+ * A child component for Switch that specifies a condition and its content.
+ */
 export function Match(props: { when: () => unknown; children: Child }) {
   return {
     condition: () => !!props.when(),

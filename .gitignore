@@ -12,6 +12,7 @@
 dist/*
 !dist/solid-lite.js
 !dist/solid-lite.min.js
+!dist/solid-lite.d.ts
 
 # Environment
 .env*
