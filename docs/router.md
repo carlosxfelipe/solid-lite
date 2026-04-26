@@ -68,22 +68,22 @@ src/router/
 
 This file exports the low-level building blocks:
 
-| Export | Description |
-|---|---|
-| `currentPath` | Signal with the current `location.pathname` |
-| `setCurrentPath` | Setter for `currentPath` |
-| `params` | Signal with extracted dynamic params (e.g. `{ id: "42" }`) |
-| `matchPath(pattern, path)` | Converts `/user/:id` to regex and extracts params |
-| `navigate(path)` | Pushes a new History entry and updates `currentPath` |
-| `Route` | Reactive component — renders `component` only when `path` matches |
-| `Link` | SPA-aware anchor that calls `navigate` and blocks XSS hrefs |
+| Export                     | Description                                                       |
+| -------------------------- | ----------------------------------------------------------------- |
+| `currentPath`              | Signal with the current `location.pathname`                       |
+| `setCurrentPath`           | Setter for `currentPath`                                          |
+| `params`                   | Signal with extracted dynamic params (e.g. `{ id: "42" }`)        |
+| `matchPath(pattern, path)` | Converts `/user/:id` to regex and extracts params                 |
+| `navigate(path)`           | Pushes a new History entry and updates `currentPath`              |
+| `Route`                    | Reactive component — renders `component` only when `path` matches |
+| `Link`                     | SPA-aware anchor that calls `navigate` and blocks XSS hrefs       |
 
 #### `<Route />` Component
 
 Renders its `component` only when `path` matches the current location. When a match occurs, it also updates the `params` signal.
 
 ```tsx
-<Route path="/user/:id" component={() => <UserProfile />} />
+<Route path="/user/:id" component={() => <UserProfile />} />;
 ```
 
 #### `<Link />` Component
@@ -91,17 +91,17 @@ Renders its `component` only when `path` matches the current location. When a ma
 A drop-in replacement for `<a>` that intercepts left-clicks (without modifier keys) and calls `navigate()` instead of doing a full page reload. It also sanitizes `javascript:`, `data:`, and `vbscript:` hrefs.
 
 ```tsx
-<Link href="/about" class="nav-link">About</Link>
+<Link href="/about" class="nav-link">About</Link>;
 ```
 
 Props:
 
-| Prop | Type | Description |
-|---|---|---|
-| `href` | `string` | Target path |
-| `children` | `unknown` | Link content |
-| `class` | `string?` | CSS class |
-| `style` | `string \| JSX.StyleObject?` | Inline style |
+| Prop       | Type                         | Description  |
+| ---------- | ---------------------------- | ------------ |
+| `href`     | `string`                     | Target path  |
+| `children` | `unknown`                    | Link content |
+| `class`    | `string?`                    | CSS class    |
+| `style`    | `string \| JSX.StyleObject?` | Inline style |
 
 #### `navigate(path)`
 
@@ -142,10 +142,10 @@ export interface RouteDefinition {
 }
 
 export const routes: RouteDefinition[] = [
-  { path: "/",         component: IS_AUTH_ENABLED ? Login : Home },
-  { path: "/home",     component: Home,        protected: IS_AUTH_ENABLED },
-  { path: "/about",    component: About,       protected: IS_AUTH_ENABLED },
-  { path: "/contact",  component: Contact,     protected: IS_AUTH_ENABLED },
+  { path: "/", component: IS_AUTH_ENABLED ? Login : Home },
+  { path: "/home", component: Home, protected: IS_AUTH_ENABLED },
+  { path: "/about", component: About, protected: IS_AUTH_ENABLED },
+  { path: "/contact", component: Contact, protected: IS_AUTH_ENABLED },
   { path: "/user/:id", component: UserProfile, protected: IS_AUTH_ENABLED },
 ];
 ```
@@ -177,7 +177,10 @@ export function useAuthGuard() {
     const path = currentPath();
     const loggedIn = isLoggedIn();
 
-    if (path === "/" && loggedIn) { navigate("/home"); return; }
+    if (path === "/" && loggedIn) {
+      navigate("/home");
+      return;
+    }
 
     const currentRoute = routes.find((r) => !!matchPath(r.path, path));
     if (currentRoute?.protected && !loggedIn) navigate("/");
@@ -231,13 +234,13 @@ export function AppRoutes() {
 
 Manages authentication using `sessionStorage` (token is cleared when the tab closes).
 
-| Export | Description |
-|---|---|
-| `isLoggedIn` | Reactive signal — `true` if a valid, non-expired JWT is stored |
-| `setIsLoggedIn` | Setter (use `login` / `logout` instead in most cases) |
-| `login(email, password)` | Calls the API (or a mock) and stores the token |
-| `logout()` | Removes the token and sets `isLoggedIn` to `false` |
-| `authFetch(url, options)` | `fetch` wrapper that injects `Authorization: Bearer <token>` |
+| Export                    | Description                                                    |
+| ------------------------- | -------------------------------------------------------------- |
+| `isLoggedIn`              | Reactive signal — `true` if a valid, non-expired JWT is stored |
+| `setIsLoggedIn`           | Setter (use `login` / `logout` instead in most cases)          |
+| `login(email, password)`  | Calls the API (or a mock) and stores the token                 |
+| `logout()`                | Removes the token and sets `isLoggedIn` to `false`             |
+| `authFetch(url, options)` | `fetch` wrapper that injects `Authorization: Bearer <token>`   |
 
 #### Mock Mode
 
@@ -259,6 +262,7 @@ const res = await authFetch("/api/profile");
 ```
 
 It automatically:
+
 1. Rejects immediately (and calls `logout()`) if the local token is expired.
 2. Calls `logout()` if the server responds with `401`.
 
