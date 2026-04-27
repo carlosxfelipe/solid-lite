@@ -106,14 +106,14 @@ const handler = async (req: Request): Promise<Response> => {
   if (isGet && (acceptsHtml || looksLikeSpaRoute)) {
     try {
       const fileRes = await serveFile(req, "dist/index.html");
-      if (IS_DEV) {
+      if (IS_DEV && fileRes.ok) {
         const text = await fileRes.text();
         const headers = new Headers(fileRes.headers);
         headers.delete("content-length");
         return new Response(
           text.replace("</body>", `${LIVERELOAD_SCRIPT}</body>`),
           {
-            status: 200,
+            status: fileRes.status,
             headers,
           },
         );
