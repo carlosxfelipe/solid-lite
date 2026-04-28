@@ -170,6 +170,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@deno/emit@0.45",
+      "jsr:@std/assert@^1.0.19",
       "jsr:@std/async@1",
       "jsr:@std/collections@^1.1.6",
       "jsr:@std/fmt@^1.0.9",

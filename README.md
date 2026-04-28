@@ -47,7 +47,11 @@ deno task start
 
 ### Other Commands
 
-To see all available commands, please review the `deno.json` file.
+To see all available commands, run the following command in your terminal:
+
+```bash
+deno task
+```
 
 ## Code Formatting
 

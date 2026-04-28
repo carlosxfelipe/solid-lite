@@ -1,5 +1,6 @@
 import { createSignal } from "@solid/index.ts";
 
+// Do not use a trailing slash (/) to avoid double slashes (//) in routes (e.g., API_BASE/api/auth)
 const API_BASE = "";
 const TOKEN_KEY = "authToken";
 

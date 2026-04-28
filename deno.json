@@ -24,11 +24,13 @@
   "tasks": {
     "stop": "deno run -A scripts/stop.ts",
     "clean": "rm -rf dist",
+    "clean:coverage": "rm -rf coverage",
     "build": "deno bundle --minify --outdir dist src/index.html && deno run -A scripts/copy_static.ts",
     "build:cdn": "deno run -A scripts/build_cdn.ts",
     "preview": "deno run -A scripts/server.ts",
     "dev": "deno task stop && deno task clean && deno run -A scripts/server.ts --dev",
-    "start": "deno task stop && deno task clean && deno task build && deno task preview"
+    "start": "deno task stop && deno task clean && deno task build && deno task preview",
+    "test:coverage": "rm -rf coverage && deno test --coverage=coverage && deno coverage coverage"
   },
   "compilerOptions": {
     "jsx": "react",
@@ -45,6 +47,7 @@
     ]
   },
   "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/collections": "jsr:@std/collections@^1.1.6",
     "@std/fmt": "jsr:@std/fmt@^1.0.9",
     "@std/async": "jsr:@std/async@^1.0.0",
