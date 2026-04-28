@@ -108,7 +108,23 @@ Deno.test("Core Reactivity: onCleanup lifecycle", () => {
 });
 
 // Import additional reactivity tools directly from core for testing
-import { batch, createComputed, createMemo, untrack } from "./solid.js";
+import {
+  batch,
+  catchError,
+  createComputed,
+  createContext,
+  createDeferred,
+  createMemo,
+  createReaction,
+  createRenderEffect,
+  createResource,
+  createSelector,
+  on,
+  startTransition,
+  untrack,
+  useContext,
+  useTransition,
+} from "./solid.js";
 
 Deno.test("Core Reactivity: createMemo", () => {
   createRoot((dispose) => {
@@ -220,4 +236,280 @@ Deno.test("Core Reactivity: createComputed", () => {
 
     dispose();
   });
+});
+
+Deno.test("Core Reactivity: on (explicit dependencies)", () => {
+  let executions = 0;
+  let setAExt: (v: number) => void = () => {};
+  let setBExt: (v: number) => void = () => {};
+
+  const dispose = createRoot((d) => {
+    const [a, setA] = createSignal(1);
+    const [b, setB] = createSignal(2);
+    setAExt = setA;
+    setBExt = setB;
+
+    createEffect(
+      on(a, (_aVal: number) => {
+        executions++;
+        b(); // This shouldn't track since it's not in the dependencies!
+      }),
+    );
+
+    return d;
+  });
+
+  assertEquals(executions, 1);
+  setBExt(3); // Should not trigger
+  assertEquals(executions, 1);
+  setAExt(5); // Should trigger
+  assertEquals(executions, 2);
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: catchError", () => {
+  let errorCaught: Error | null = null;
+  let setShouldThrowExt: (v: boolean) => void = () => {};
+
+  const dispose = createRoot((d) => {
+    const [shouldThrow, setShouldThrow] = createSignal(false);
+    setShouldThrowExt = setShouldThrow;
+
+    catchError(
+      () => {
+        createEffect(() => {
+          if (shouldThrow()) {
+            throw new Error("Test error!");
+          }
+        });
+      },
+      (err: unknown) => {
+        errorCaught = err as Error;
+      },
+    );
+
+    return d;
+  });
+
+  assertEquals(errorCaught, null);
+  setShouldThrowExt(true);
+
+  if (errorCaught === null) {
+    throw new Error("errorCaught is null when it should have caught an error");
+  }
+  assertEquals((errorCaught as Error).message, "Test error!");
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: createSelector", () => {
+  let effect1Fired = 0;
+  let effect2Fired = 0;
+  let setSelectedExt: (v: number) => void = () => {};
+
+  const dispose = createRoot((d) => {
+    const [selected, setSelected] = createSignal(1);
+    setSelectedExt = setSelected;
+    const isSelected = createSelector(selected);
+
+    createEffect(() => {
+      isSelected(1); // true initially
+      effect1Fired++;
+    });
+
+    createEffect(() => {
+      isSelected(2); // false initially
+      effect2Fired++;
+    });
+
+    return d;
+  });
+
+  assertEquals(effect1Fired, 1);
+  assertEquals(effect2Fired, 1);
+
+  setSelectedExt(1); // Same value, should not trigger
+  assertEquals(effect1Fired, 1);
+  assertEquals(effect2Fired, 1);
+
+  setSelectedExt(2); // Now 1 becomes false, 2 becomes true
+  assertEquals(effect1Fired, 2);
+  assertEquals(effect2Fired, 2);
+
+  setSelectedExt(3); // Now 2 becomes false, 3 becomes true (but no one listens to 3)
+  assertEquals(effect1Fired, 2);
+  assertEquals(effect2Fired, 3); // effect2 fires because isSelected(2) changed from true to false!
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: createRenderEffect", () => {
+  let executions = 0;
+  let setAExt: (v: number) => void = () => {};
+
+  const dispose = createRoot((d) => {
+    const [a, setA] = createSignal(1);
+    setAExt = setA;
+
+    createRenderEffect(() => {
+      a();
+      executions++;
+    });
+    // createRenderEffect runs immediately (synchronously)
+    assertEquals(executions, 1);
+    return d;
+  });
+
+  setAExt(2);
+  assertEquals(executions, 2);
+  dispose();
+});
+
+Deno.test("Core Reactivity: createReaction", () => {
+  let reactionFired = 0;
+  let setAExt: (v: number) => void = () => {};
+
+  const dispose = createRoot((d) => {
+    const [a, setA] = createSignal(1);
+    setAExt = setA;
+
+    const track = createReaction(() => {
+      reactionFired++;
+    });
+
+    // Manually track the signal
+    track(() => {
+      a();
+    });
+
+    return d;
+  });
+
+  assertEquals(reactionFired, 0); // Reaction body doesn't run initially
+
+  setAExt(2);
+  assertEquals(reactionFired, 1); // Reaction fires when dependency updates
+
+  setAExt(3);
+  assertEquals(reactionFired, 1); // Reaction only fires ONCE per track call!
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: startTransition & useTransition", async () => {
+  let setAExt: (v: number) => void = () => {};
+  let isPendingExt: () => boolean = () => false;
+
+  const dispose = createRoot((d) => {
+    const [a, setA] = createSignal(1);
+    setAExt = setA;
+    const [isPending] = useTransition();
+    isPendingExt = isPending;
+
+    createEffect(() => {
+      a();
+    });
+
+    return d;
+  });
+
+  assertEquals(isPendingExt(), false);
+
+  const transitionPromise = startTransition(() => {
+    setAExt(2);
+  });
+
+  // Depending on whether scheduling is enabled, it may or may not be pending.
+  // We just wait for it to complete.
+  await transitionPromise;
+
+  assertEquals(isPendingExt(), false);
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: createContext & useContext", () => {
+  const MyContext = createContext(10);
+  let valueExt = 0;
+
+  createRoot((dispose) => {
+    // Should be default value since there is no provider in the parent hierarchy
+    assertEquals(useContext(MyContext), 10);
+
+    // Provide the value to a child scope
+    MyContext.Provider({
+      value: 20,
+      children: () => {
+        valueExt = useContext(MyContext);
+        return "";
+      },
+    });
+
+    dispose();
+  });
+
+  assertEquals(valueExt, 20);
+});
+
+Deno.test({
+  name: "Core Reactivity: createDeferred",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  async fn() {
+    let setAExt: (v: number) => void = () => {};
+    let getDeferred: () => number = () => 0;
+
+    const dispose = createRoot((d) => {
+      const [a, setA] = createSignal(1);
+      setAExt = setA;
+      const deferredA = createDeferred(a, { timeoutMs: 50 });
+      getDeferred = deferredA;
+
+      assertEquals(deferredA(), 1);
+
+      return d;
+    });
+
+    setAExt(2);
+    // deferredA should still be 1 synchronously after setA
+    assertEquals(getDeferred(), 1);
+
+    // Wait for deferred to update
+    await new Promise((r) => setTimeout(r, 100));
+
+    assertEquals(getDeferred(), 2);
+
+    dispose();
+  },
+});
+
+Deno.test("Core Reactivity: createResource", async () => {
+  let resolveResource: (v: string) => void = () => {};
+  // deno-lint-ignore no-explicit-any
+  let getData: any;
+
+  const fetcher = (_id: string) =>
+    new Promise<string>((resolve) => {
+      resolveResource = resolve;
+    });
+
+  const dispose = createRoot((d) => {
+    const [source] = createSignal("id-1");
+    const [data] = createResource(source, fetcher);
+    getData = data;
+
+    assertEquals(getData(), undefined);
+    assertEquals(getData.loading, true);
+
+    return d;
+  });
+
+  resolveResource("Data 1");
+  await new Promise((r) => setTimeout(r, 10)); // give it a moment
+
+  assertEquals(getData(), "Data 1");
+  assertEquals(getData.loading, false);
+
+  dispose();
 });
