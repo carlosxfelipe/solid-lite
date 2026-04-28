@@ -110,6 +110,7 @@ Deno.test("Core Reactivity: onCleanup lifecycle", () => {
 // Import additional reactivity tools directly from core for testing
 import {
   batch,
+  cancelCallback,
   catchError,
   children,
   createComponent,
@@ -125,6 +126,7 @@ import {
   equalFn,
   ErrorBoundary,
   For,
+  from,
   getListener,
   getOwner,
   Index,
@@ -132,8 +134,11 @@ import {
   mapArray,
   Match,
   mergeProps,
+  observable,
   on,
+  onError,
   onMount,
+  requestCallback,
   runWithOwner,
   Show,
   splitProps,
@@ -872,4 +877,107 @@ Deno.test("Core Reactivity: ErrorBoundary", async () => {
   assertEquals(result, "Boom");
 
   dispose();
+});
+
+Deno.test("Core Reactivity: observable & from", async () => {
+  let sub: { unsubscribe: () => void } = { unsubscribe: () => {} };
+  let lastVal = -1;
+  let setCountExt: (v: number) => void = () => {};
+  let sigExt: () => number | undefined = () => undefined;
+  const listeners = new Set<(v: number) => void>();
+
+  const dispose = createRoot((d) => {
+    const [count, setCount] = createSignal(0);
+    setCountExt = setCount;
+    const obs = observable(count);
+
+    sub = obs.subscribe({
+      next: (v: number) => lastVal = v,
+    });
+
+    const mockObs = {
+      // deno-lint-ignore no-explicit-any
+      subscribe(observer: any) {
+        const next = typeof observer === "function" ? observer : observer.next;
+        listeners.add(next);
+        return {
+          unsubscribe() {
+            listeners.delete(next);
+          },
+        };
+      },
+    };
+
+    // deno-lint-ignore no-explicit-any
+    sigExt = from(mockObs as any);
+
+    return d;
+  });
+
+  // observable uses createEffect, which runs async
+  await new Promise((r) => setTimeout(r, 0));
+  assertEquals(lastVal, 0);
+
+  setCountExt(1);
+  await new Promise((r) => setTimeout(r, 0));
+  assertEquals(lastVal, 1);
+
+  sub.unsubscribe();
+  setCountExt(2);
+  await new Promise((r) => setTimeout(r, 0));
+  assertEquals(lastVal, 1); // no longer tracks
+
+  // test from
+  assertEquals(sigExt(), undefined);
+  listeners.forEach((fn) => fn(10));
+  assertEquals(sigExt(), 10);
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: onError", () => {
+  // deno-lint-ignore no-explicit-any
+  let caughtError: any;
+  const dispose = createRoot((d) => {
+    // deno-lint-ignore no-explicit-any
+    onError((err: any) => caughtError = err);
+
+    // handleError is triggered by throwing inside a scheduled computation, like createRenderEffect
+    createRenderEffect(() => {
+      throw new Error("Oops");
+    });
+
+    return d;
+  });
+
+  assertEquals(caughtError?.message, "Oops");
+  dispose();
+});
+
+Deno.test({
+  name: "Core Reactivity: requestCallback & cancelCallback",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  async fn() {
+    let executed = false;
+
+    const task = requestCallback(() => {
+      executed = true;
+    });
+
+    cancelCallback(task);
+
+    // Wait some time to ensure it wasn't executed
+    await new Promise((r) => setTimeout(r, 50));
+    assertEquals(executed, false);
+
+    // Now test a successful callback
+    let executed2 = false;
+    requestCallback(() => {
+      executed2 = true;
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    assertEquals(executed2, true);
+  },
 });
