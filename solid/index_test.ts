@@ -1,7 +1,16 @@
 import "./dom_setup.ts";
 import { assertEquals } from "@std/assert";
 import { createSignal } from "./solid.js";
-import { For, Fragment, h, Match, render, Show, Switch } from "./index.ts";
+import {
+  Child,
+  For,
+  Fragment,
+  h,
+  Match,
+  render,
+  Show,
+  Switch,
+} from "./index.ts";
 
 Deno.test("DOM Reactivity: h creates basic elements", () => {
   const el = h("div", { id: "test", class: "btn" }, "Hello");
@@ -101,4 +110,43 @@ Deno.test("DOM Reactivity: For component renders lists dynamically", async () =>
   setList([2]);
   await new Promise((r) => setTimeout(r, 0));
   assertEquals(container.textContent, "2");
+});
+
+Deno.test("DOM Reactivity: Fragment groups children without a wrapper node", () => {
+  const el = Fragment({}, h("span", {}, "A"), h("span", {}, "B"));
+  const container = document.createElement("div");
+  render(el as Node, container);
+
+  assertEquals(container.innerHTML, "<span>A</span><span>B</span>");
+});
+
+Deno.test("DOM Reactivity: Switch and Match render correct branch", async () => {
+  const [value, setValue] = createSignal(1);
+  const el = Switch({
+    children: [
+      Match({
+        when: () => value() === 1,
+        children: h("div", {}, "One"),
+      }) as unknown as Child,
+      Match({
+        when: () => value() === 2,
+        children: h("div", {}, "Two"),
+      }) as unknown as Child,
+    ],
+    fallback: h("div", {}, "Fallback"),
+  });
+
+  const container = document.createElement("div");
+  // @ts-ignore: it returns a DocumentFragment
+  render(el as Node, container);
+
+  assertEquals(container.textContent, "One");
+
+  setValue(2);
+  await new Promise((r) => setTimeout(r, 0));
+  assertEquals(container.textContent, "Two");
+
+  setValue(3);
+  await new Promise((r) => setTimeout(r, 0));
+  assertEquals(container.textContent, "Fallback");
 });
