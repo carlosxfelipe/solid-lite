@@ -1,5 +1,6 @@
 import { h } from "@solid/index.ts";
 import { Counter } from "@components/Counter.tsx";
+import { StyleSheet } from "@utils/style.ts";
 
 export function Home() {
   return (
@@ -9,35 +10,17 @@ export function Home() {
         A minimalist and high-performance implementation inspired by SolidJS.
       </p>
 
-      <div
-        class="card"
-        style={{
-          "text-align": "left",
-          "margin-top": "2rem",
-          "margin-bottom": "2rem",
-        }}
-      >
-        <p style={{ "font-weight": "bold", "margin-bottom": "1rem" }}>
+      <div class="card" style={styles.card}>
+        <p style={styles.paragraphBoldSpacing}>
           Tired of "bloatware" in modern web development? Me too.
         </p>
-        <p style={{ "margin-bottom": "1.5rem" }}>
+        <p style={styles.paragraphSpacing}>
           Introducing solid-lite: an experiment where I decided to unite the
           best of both worlds: <strong>high-performance reactivity</strong>{" "}
           and a <strong>clean, zero-bloat runtime</strong>.
         </p>
-        <p style={{ "font-weight": "bold", "margin-bottom": "1rem" }}>
-          What makes it special?
-        </p>
-        <ul
-          style={{
-            "list-style-type": "disc",
-            "margin-left": "1.5rem",
-            "margin-bottom": "1.5rem",
-            display: "flex",
-            "flex-direction": "column",
-            gap: "0.75rem",
-          }}
-        >
+        <p style={styles.paragraphBoldSpacing}>What makes it special?</p>
+        <ul style={styles.list}>
           <li>
             <strong>Solid.js Core:</strong>{" "}
             Native reactivity without a Virtual DOM. The performance is insane,
@@ -53,10 +36,7 @@ export function Home() {
               href="https://jsr.io"
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                color: "hsl(var(--primary))",
-                "text-decoration": "underline",
-              }}
+              style={styles.link}
             >
               jsr.io
             </a>{" "}
@@ -75,7 +55,7 @@ export function Home() {
             It’s lightweight, fast, and doesn’t choke your CPU.
           </li>
         </ul>
-        <p style={{ "font-weight": "bold" }}>
+        <p style={styles.paragraphBold}>
           The goal? To prove that we don’t need complex build pipelines to have
           a modern and smooth development experience.
         </p>
@@ -85,3 +65,33 @@ export function Home() {
     </div>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    textAlign: "left",
+    marginTop: "2rem",
+    marginBottom: "2rem",
+  },
+  paragraphBoldSpacing: {
+    fontWeight: "bold",
+    marginBottom: "1rem",
+  },
+  paragraphSpacing: {
+    marginBottom: "1.5rem",
+  },
+  paragraphBold: {
+    fontWeight: "bold",
+  },
+  list: {
+    listStyleType: "disc",
+    marginLeft: "1.5rem",
+    marginBottom: "1.5rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  },
+  link: {
+    color: "hsl(var(--primary))",
+    textDecoration: "underline",
+  },
+});

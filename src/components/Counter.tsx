@@ -1,5 +1,6 @@
 import { createEffect, createSignal, h } from "@solid/index.ts";
 import { Icon } from "@components/Icon.tsx";
+import { StyleSheet } from "@utils/style.ts";
 
 export function Counter() {
   const [count, setCount] = createSignal(
@@ -12,10 +13,7 @@ export function Counter() {
 
   return (
     <div class="card">
-      <div
-        class="label"
-        style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-      >
+      <div class="label" style={styles.label}>
         <Icon name="Plus" size={16} /> Reactive Counter
       </div>
       <div class="counter-value">{count}</div>
@@ -24,11 +22,7 @@ export function Counter() {
           type="button"
           class="btn btn-secondary btn-icon"
           onClick={() => setCount((c: number) => c - 1)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
+          style={styles.button}
         >
           <Icon name="Minus" size={16} />
           <span class="btn-label">Decrease</span>
@@ -37,11 +31,7 @@ export function Counter() {
           type="button"
           class="btn btn-primary btn-icon"
           onClick={() => setCount((c: number) => c + 1)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
+          style={styles.button}
         >
           <Icon name="Plus" size={16} />
           <span class="btn-label">Increase</span>
@@ -49,12 +39,7 @@ export function Counter() {
         <button
           type="button"
           class="btn btn-danger btn-icon"
-          style={{
-            marginLeft: "auto",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
+          style={styles.resetButton}
           onClick={() => setCount(0)}
         >
           <Icon name="RefreshCw" size={16} />
@@ -64,3 +49,22 @@ export function Counter() {
     </div>
   );
 }
+
+const styles = StyleSheet.create({
+  label: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+  button: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+  resetButton: {
+    marginLeft: "auto",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+});
