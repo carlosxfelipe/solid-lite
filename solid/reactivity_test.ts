@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { createEffect, createRoot, createSignal, onCleanup } from "./index.ts";
 
 Deno.test("Core Reactivity: createSignal", () => {
@@ -111,6 +111,8 @@ Deno.test("Core Reactivity: onCleanup lifecycle", () => {
 import {
   batch,
   catchError,
+  children,
+  createComponent,
   createComputed,
   createContext,
   createDeferred,
@@ -119,8 +121,24 @@ import {
   createRenderEffect,
   createResource,
   createSelector,
+  createUniqueId,
+  equalFn,
+  ErrorBoundary,
+  For,
+  getListener,
+  getOwner,
+  Index,
+  indexArray,
+  mapArray,
+  Match,
+  mergeProps,
   on,
+  onMount,
+  runWithOwner,
+  Show,
+  splitProps,
   startTransition,
+  Switch,
   untrack,
   useContext,
   useTransition,
@@ -510,6 +528,348 @@ Deno.test("Core Reactivity: createResource", async () => {
 
   assertEquals(getData(), "Data 1");
   assertEquals(getData.loading, false);
+
+  dispose();
+});
+
+Deno.test("Core Reactivity: getOwner & runWithOwner", () => {
+  // deno-lint-ignore no-explicit-any
+  let owner1: any;
+  // deno-lint-ignore no-explicit-any
+  let owner2: any;
+  let executed = false;
+
+  createRoot((dispose) => {
+    owner1 = getOwner();
+
+    createRoot((disposeInner) => {
+      owner2 = getOwner();
+      disposeInner();
+    });
+
+    dispose();
+  });
+
+  assertNotEquals(owner1, owner2);
+  assertNotEquals(owner1, null);
+
+  runWithOwner(owner1, () => {
+    executed = true;
+    assertEquals(getOwner(), owner1);
+  });
+
+  assertEquals(executed, true);
+});
+
+Deno.test("Core Reactivity: mapArray", () => {
+  let mappedExecutions = 0;
+  const dispose = createRoot((d) => {
+    const [list, setList] = createSignal([1, 2, 3]);
+
+    const mapped = mapArray(list, (item: number) => {
+      mappedExecutions++;
+      return item * 2;
+    });
+
+    assertEquals(mapped(), [2, 4, 6]);
+    assertEquals(mappedExecutions, 3);
+
+    // Update list: 2 items stay, 1 removed, 1 added
+    setList([1, 3, 4]);
+    assertEquals(mapped(), [2, 6, 8]);
+
+    // The mapper should only run for the newly added item (4)
+    assertEquals(mappedExecutions, 4);
+
+    return d;
+  });
+  dispose();
+});
+
+Deno.test("Core Reactivity: indexArray", () => {
+  let mappedExecutions = 0;
+  const dispose = createRoot((d) => {
+    const [list, setList] = createSignal([1, 2, 3]);
+
+    const mapped = indexArray(list, (item: () => number) => {
+      mappedExecutions++;
+      return () => item() * 2; // Return an accessor to reflect updates!
+    });
+
+    // Evaluate all inner accessors
+    assertEquals(mapped().map((fn: () => number) => fn()), [2, 4, 6]);
+    assertEquals(mappedExecutions, 3);
+
+    // Update list: value at index 1 changes
+    setList([1, 5, 3]);
+
+    // The mapped array itself doesn't re-run the mapper for index 1,
+    // but the inner accessor now returns the new doubled value.
+    assertEquals(mapped().map((fn: () => number) => fn()), [2, 10, 6]);
+    assertEquals(mappedExecutions, 3);
+
+    return d;
+  });
+  dispose();
+});
+
+Deno.test("Core Reactivity: mergeProps", () => {
+  const merged = mergeProps({ a: 1, b: 2 }, { b: 3, c: 4 });
+  assertEquals(merged.a, 1);
+  assertEquals(merged.b, 3); // latter overrides former
+  // deno-lint-ignore no-explicit-any
+  assertEquals((merged as any).c, 4);
+});
+
+Deno.test("Core Reactivity: splitProps", () => {
+  const source = { a: 1, b: 2, c: 3, d: 4 };
+  const [propsA, propsB, rest] = splitProps(source, ["a", "b"], ["c"]);
+
+  assertEquals(propsA.a, 1);
+  assertEquals(propsA.b, 2);
+  // deno-lint-ignore no-explicit-any
+  assertEquals((propsA as any).c, undefined);
+
+  // deno-lint-ignore no-explicit-any
+  assertEquals((propsB as any).c, 3);
+  // deno-lint-ignore no-explicit-any
+  assertEquals((propsB as any).a, undefined);
+
+  // deno-lint-ignore no-explicit-any
+  assertEquals((rest as any).d, 4);
+  // deno-lint-ignore no-explicit-any
+  assertEquals((rest as any).a, undefined);
+});
+
+Deno.test("Core Reactivity: onMount", () => {
+  let mounted = 0;
+  const dispose = createRoot((d) => {
+    const [a, setA] = createSignal(1);
+
+    onMount(() => {
+      mounted++;
+      a(); // accessing 'a' inside onMount should not track it because onMount untracks
+    });
+
+    setA(2);
+    setA(3);
+
+    return d;
+  });
+
+  assertEquals(mounted, 1); // Only runs once, didn't re-run when 'a' changed
+  dispose();
+});
+
+Deno.test("Core Reactivity: createUniqueId", () => {
+  let id1 = "";
+  let id2 = "";
+  const dispose = createRoot((d) => {
+    id1 = createUniqueId();
+    id2 = createUniqueId();
+    return d;
+  });
+
+  assertNotEquals(id1, id2);
+  assertNotEquals(id1, "");
+  dispose();
+});
+
+Deno.test("Core Reactivity: children", () => {
+  // deno-lint-ignore no-explicit-any
+  let resolved: any;
+  const dispose = createRoot((d) => {
+    // children takes a getter that returns children
+    const resolvedChildren = children(() => [1, 2, 3]);
+    resolved = resolvedChildren();
+    return d;
+  });
+
+  // Solid's children() returns the unwrapped array or elements
+  // Depending on how it's structured, might be the array itself
+  assertEquals(resolved, [1, 2, 3]);
+  dispose();
+});
+
+Deno.test("Core Reactivity: createComponent", () => {
+  const MyComp = (props: { msg: string }) => {
+    return props.msg;
+  };
+
+  const result = createComponent(MyComp, { msg: "hello" });
+  assertEquals(result, "hello");
+});
+
+Deno.test("Core Reactivity: getListener", () => {
+  let hasListenerInsideEffect = false;
+  let hasListenerOutside = false;
+
+  const dispose = createRoot((d) => {
+    hasListenerOutside = getListener() !== null;
+
+    createEffect(() => {
+      hasListenerInsideEffect = getListener() !== null;
+    });
+    return d;
+  });
+
+  assertEquals(hasListenerOutside, false);
+  assertEquals(hasListenerInsideEffect, true);
+  dispose();
+});
+
+Deno.test("Core Reactivity: equalFn", () => {
+  assertEquals(equalFn(1, 1), true);
+  assertEquals(equalFn(1, 2), false);
+  const obj = {};
+  assertEquals(equalFn(obj, obj), true);
+  assertEquals(equalFn({}, {}), false);
+});
+
+Deno.test("Core Reactivity: Show", () => {
+  const dispose = createRoot((d) => {
+    const [show, setShow] = createSignal(true);
+    const render = Show({
+      get when() {
+        return show();
+      },
+      get children() {
+        return "Shown";
+      },
+      fallback: "Hidden",
+    });
+
+    assertEquals(render(), "Shown");
+
+    setShow(false);
+    assertEquals(render(), "Hidden");
+
+    return d;
+  });
+  dispose();
+});
+
+Deno.test("Core Reactivity: Switch & Match", () => {
+  const dispose = createRoot((d) => {
+    const [val, setVal] = createSignal(1);
+
+    const render = Switch({
+      fallback: "Fallback",
+      get children() {
+        return [
+          Match({
+            get when() {
+              return val() === 1;
+            },
+            get children() {
+              return "One";
+            },
+          }),
+          Match({
+            get when() {
+              return val() === 2;
+            },
+            get children() {
+              return "Two";
+            },
+          }),
+        ];
+      },
+    });
+
+    assertEquals(render(), "One");
+
+    setVal(2);
+    assertEquals(render(), "Two");
+
+    setVal(3);
+    assertEquals(render(), "Fallback");
+
+    return d;
+  });
+  dispose();
+});
+
+Deno.test("Core Reactivity: For", () => {
+  const dispose = createRoot((d) => {
+    const [list, setList] = createSignal([1, 2]);
+    const render = For({
+      get each() {
+        return list();
+      },
+      children: (item: number) => item * 2,
+      fallback: "Empty",
+    });
+
+    assertEquals(render(), [2, 4]);
+
+    setList([]);
+    assertEquals(render(), ["Empty"]);
+
+    return d;
+  });
+  dispose();
+});
+
+Deno.test("Core Reactivity: Index", () => {
+  const dispose = createRoot((d) => {
+    const [list, setList] = createSignal([1, 2]);
+    const render = Index({
+      get each() {
+        return list();
+      },
+      children: (item: () => number) => () => item() * 2,
+      fallback: "Empty",
+    });
+
+    // deno-lint-ignore no-explicit-any
+    const evaluate = (arr: any) =>
+      Array.isArray(arr)
+        ? arr.map((fn) => typeof fn === "function" ? fn() : fn)
+        : arr;
+
+    assertEquals(evaluate(render()), [2, 4]);
+
+    setList([]);
+    assertEquals(evaluate(render()), ["Empty"]);
+
+    return d;
+  });
+  dispose();
+});
+
+Deno.test("Core Reactivity: ErrorBoundary", async () => {
+  let result;
+  let setShouldThrowExt: (v: boolean) => void = () => {};
+
+  const dispose = createRoot((d) => {
+    const [shouldThrow, setShouldThrow] = createSignal(false);
+    setShouldThrowExt = setShouldThrow;
+
+    const render = ErrorBoundary({
+      get children() {
+        if (shouldThrow()) throw new Error("Boom");
+        return "Safe";
+      },
+      // deno-lint-ignore no-explicit-any
+      fallback: (err: any) => err.message,
+    });
+
+    createEffect(() => {
+      result = render();
+    });
+
+    return d;
+  });
+
+  assertEquals(result, "Safe");
+
+  setShouldThrowExt(true);
+
+  // Wait for the effect and error state to stabilize
+  await new Promise((r) => setTimeout(r, 10));
+
+  assertEquals(result, "Boom");
 
   dispose();
 });
