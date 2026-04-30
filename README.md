@@ -16,6 +16,11 @@ complex compiler.
 - **No Virtual DOM**: Unlike React, changes are applied directly to browser
   nodes.
 - **Native Deno**: Built to leverage Deno's performance and security APIs.
+- **Batteries Included**: Comes with a built-in router, auth system, and component examples.
+
+## 🚀 Starting a New Project
+
+If you want to use this project as a template for your own application, we recommend following our **[Cleanup and Setup Guide](./docs/CLEANUP.md)**. It explains how to remove the example components and prepare the framework for your own logic.
 
 ## Requirements
 
