@@ -1,47 +1,62 @@
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --disabled: 240 4.8% 95.9%;
-  --disabled-foreground: 240 3.8% 46.1%;
+  /* Palette definitions */
+  --p-white: 0 0% 100%;
+  --p-zinc-50: 0 0% 98%;
+  --p-zinc-100: 240 4.8% 95.9%;
+  --p-zinc-200: 240 5.9% 90%;
+  --p-zinc-300: 240 4.9% 83.9%;
+  --p-zinc-400: 240 5% 64.9%;
+  --p-zinc-500: 240 3.8% 46.1%;
+  --p-zinc-800: 240 3.7% 15.1%;
+  --p-zinc-900: 240 5.9% 10%;
+  --p-zinc-950: 240 10% 3.9%;
+  --p-red-600: 0 84.2% 60.2%;
+  --p-red-900: 0 62.8% 30.6%;
+
+  /* Semantic mappings - Light Mode */
+  --background: var(--p-white);
+  --foreground: var(--p-zinc-950);
+  --card: var(--p-white);
+  --card-foreground: var(--p-zinc-950);
+  --primary: var(--p-zinc-900);
+  --primary-foreground: var(--p-zinc-50);
+  --secondary: var(--p-zinc-100);
+  --secondary-foreground: var(--p-zinc-900);
+  --muted: var(--p-zinc-100);
+  --muted-foreground: var(--p-zinc-500);
+  --accent: var(--p-zinc-100);
+  --accent-foreground: var(--p-zinc-900);
+  --destructive: var(--p-red-600);
+  --destructive-foreground: var(--p-zinc-50);
+  --border: var(--p-zinc-200);
+  --input: var(--p-zinc-200);
+  --ring: var(--p-zinc-900);
+  --disabled: var(--p-zinc-100);
+  --disabled-foreground: var(--p-zinc-500);
   --radius: 0.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.1%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.1%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.1%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.1%;
-    --input: 240 3.7% 15.1%;
-    --ring: 240 4.9% 83.9%;
-    --disabled: 240 3.7% 15.1%;
-    --disabled-foreground: 240 5% 64.9%;
+    --background: var(--p-zinc-950);
+    --foreground: var(--p-zinc-50);
+    --card: var(--p-zinc-950);
+    --card-foreground: var(--p-zinc-50);
+    --primary: var(--p-zinc-50);
+    --primary-foreground: var(--p-zinc-900);
+    --secondary: var(--p-zinc-800);
+    --secondary-foreground: var(--p-zinc-50);
+    --muted: var(--p-zinc-800);
+    --muted-foreground: var(--p-zinc-400);
+    --accent: var(--p-zinc-800);
+    --accent-foreground: var(--p-zinc-50);
+    --destructive: var(--p-red-900);
+    --destructive-foreground: var(--p-zinc-50);
+    --border: var(--p-zinc-800);
+    --input: var(--p-zinc-800);
+    --ring: var(--p-zinc-300);
+    --disabled: var(--p-zinc-800);
+    --disabled-foreground: var(--p-zinc-400);
   }
 }
 

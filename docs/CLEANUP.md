@@ -45,6 +45,31 @@ If you removed components like the `Counter`, there might be specific CSS classe
 - `src/styles/app.css` for global component styles.
 - Inline styles or `StyleSheet` objects within the files you modified.
 
+## 6. Resetting CSS by Layers
+
+Solid Lite organizes its visual architecture into three distinct layers. Understanding them allows for a precise reset without losing basic browser consistency.
+
+### Layer 1: Base (`base.css`)
+
+This is the **foundation**. It contains a modern CSS reset, global typography defaults, and normalization for elements like buttons and inputs.
+
+- **When to reset:** Rarely. Keep this unless you want to implement your own normalize/reset from scratch.
+
+### Layer 2: Layout (`layout.css`)
+
+This layer handles the **skeleton**. It defines structural classes like `.container`, `.container-fluid`, and `.center-viewport`.
+
+- **When to reset:** If you want to change the max-width of your app or switch from a container-based layout to something else (like full-width dashboards).
+
+### Layer 3: App (`app.css`)
+
+This is the **skin and soul**. It contains:
+
+1. **Design Tokens**: HSL variables for the color palette (Light/Dark mode).
+2. **Component Styles**: Specific classes for `.btn`, `.card`, `.navbar`, and form elements.
+
+- **When to reset:** This is the most common layer to "clean". You can delete component classes you don't use, but we recommend **keeping the `:root` variables** as they are used by the core logic for theme switching.
+
 ## Command Summary
 
 If you are on a Linux/macOS terminal, you can run these commands for a quick cleanup:
