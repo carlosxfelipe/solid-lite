@@ -1,7 +1,9 @@
 import { createSignal, h, Show } from "@solid/index.ts";
 import { navigate } from "@router/index.tsx";
 import { Icon } from "@components/Icon.tsx";
+import { Button } from "@components/Button.tsx";
 import { login } from "@router/auth.ts";
+import { StyleSheet } from "@utils/style.ts";
 
 export function Login() {
   const [showPassword, setShowPassword] = createSignal(false);
@@ -20,31 +22,16 @@ export function Login() {
   };
 
   return (
-    <div
-      class="container"
-      style={{
-        display: "flex",
-        "align-items": "center",
-        "justify-content": "center",
-        "min-height": "100vh",
-      }}
-    >
-      <div class="card" style={{ width: "100%", "max-width": "400px" }}>
-        <h1 class="title" style={{ "text-align": "center" }}>Login</h1>
-        <p class="description" style={{ "text-align": "center" }}>
+    <div class="container" style={styles.container}>
+      <div class="card" style={styles.card}>
+        <h1 class="title" style={styles.title}>Login</h1>
+        <p class="description" style={styles.title}>
           Welcome back to Solid Lite.
         </p>
 
         <Show when={() => !!error()}>
           {() => (
-            <div
-              style={{
-                color: "red",
-                "margin-bottom": "1rem",
-                "text-align": "center",
-                "font-size": "0.875rem",
-              }}
-            >
+            <div style={styles.error}>
               {error()}
             </div>
           )}
@@ -66,56 +53,37 @@ export function Login() {
 
           <div class="form-group">
             <label class="form-label">Password</label>
-            <div style={{ position: "relative" }}>
+            <div style={styles.passwordWrapper}>
               <input
                 type={() => (showPassword() ? "text" : "password")}
                 class="form-input"
-                style={{ "padding-right": "2.5rem" }}
+                style={styles.passwordInput}
                 placeholder="admin123"
                 value={password}
                 onInput={(e: Event) =>
                   setPassword((e.target as HTMLInputElement).value)}
                 required
               />
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => setShowPassword(!showPassword())}
-                style={{
-                  position: "absolute",
-                  right: "0.75rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  padding: "4px",
-                  cursor: "pointer",
-                  color: "hsl(var(--muted-foreground))",
-                  display: "flex",
-                  "align-items": "center",
-                }}
+                style={styles.eyeButton}
               >
                 {() => (
                   <Icon name={showPassword() ? "EyeOff" : "Eye"} size={18} />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-large">
+          <Button type="submit" variant="primary" class="btn-large">
             Sign In
-          </button>
+          </Button>
         </form>
 
-        <div
-          style={{
-            "margin-top": "1.5rem",
-            "text-align": "center",
-            "font-size": "0.875rem",
-            color: "hsl(var(--muted-foreground))",
-          }}
-        >
+        <div style={styles.footer}>
           Don't have an account?{" "}
-          <span style={{ color: "hsl(var(--foreground))", cursor: "pointer" }}>
+          <span style={styles.signUpLink}>
             Sign up
           </span>
         </div>
@@ -123,3 +91,52 @@ export function Login() {
     </div>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "100vh",
+  },
+  card: {
+    width: "100%",
+    maxWidth: "400px",
+  },
+  title: {
+    textAlign: "center",
+  },
+  error: {
+    color: "red",
+    marginBottom: "1rem",
+    textAlign: "center",
+    fontSize: "0.875rem",
+  },
+  passwordWrapper: {
+    position: "relative",
+  },
+  passwordInput: {
+    paddingRight: "2.5rem",
+  },
+  eyeButton: {
+    position: "absolute",
+    right: "0.75rem",
+    top: "50%",
+    transform: "translateY(-50%)",
+    padding: "4px",
+    height: "auto",
+    color: "hsl(var(--muted-foreground))",
+    display: "flex",
+    alignItems: "center",
+  },
+  footer: {
+    marginTop: "1.5rem",
+    textAlign: "center",
+    fontSize: "0.875rem",
+    color: "hsl(var(--muted-foreground))",
+  },
+  signUpLink: {
+    color: "hsl(var(--foreground))",
+    cursor: "pointer",
+  },
+});

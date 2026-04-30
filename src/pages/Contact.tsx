@@ -1,4 +1,6 @@
 import { h } from "@solid/index.ts";
+import { Button } from "@components/Button.tsx";
+import { StyleSheet } from "@utils/style.ts";
 
 export function Contact() {
   return (
@@ -8,7 +10,7 @@ export function Contact() {
         Get in touch with the Solid Lite team. We'd love to hear from you.
       </p>
 
-      <div class="card" style={{ maxWidth: "600px", margin: "0 auto" }}>
+      <div class="card" style={styles.card}>
         <form>
           <div class="form-group">
             <label class="form-label" for="contact-name">Name</label>
@@ -40,11 +42,18 @@ export function Contact() {
             </textarea>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-large">
+          <Button type="submit" variant="primary" class="btn-large">
             Send Message
-          </button>
+          </Button>
         </form>
       </div>
     </div>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    maxWidth: "600px",
+    margin: "0 auto",
+  },
+});

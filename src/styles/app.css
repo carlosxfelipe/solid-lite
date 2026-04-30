@@ -16,6 +16,8 @@
   --border: 240 5.9% 90%;
   --input: 240 5.9% 90%;
   --ring: 240 5.9% 10%;
+  --disabled: 240 4.8% 95.9%;
+  --disabled-foreground: 240 3.8% 46.1%;
   --radius: 0.5rem;
 }
 
@@ -38,6 +40,8 @@
     --border: 240 3.7% 15.1%;
     --input: 240 3.7% 15.1%;
     --ring: 240 4.9% 83.9%;
+    --disabled: 240 3.7% 15.1%;
+    --disabled-foreground: 240 5% 64.9%;
   }
 }
 
@@ -109,6 +113,14 @@ body {
   user-select: none;
 }
 
+.btn:disabled {
+  background-color: hsl(var(--disabled));
+  color: hsl(var(--disabled-foreground));
+  border-color: hsl(var(--border));
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .btn-primary {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
@@ -137,6 +149,16 @@ body {
 
 .btn-danger:hover {
   opacity: 0.9;
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: none;
+}
+
+.btn-ghost:hover {
+  background-color: hsl(var(--secondary));
 }
 
 .navbar {

@@ -2,6 +2,8 @@ import { h, Show } from "@solid/index.ts";
 import { navigate, params } from "@router/index.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
 import { logout } from "@router/auth.ts";
+import { Button } from "@components/Button.tsx";
+import { StyleSheet } from "@utils/style.ts";
 
 // Mock list of "existing" IDs in our system
 const VALID_USERS = ["123", "456", "carlos"];
@@ -20,9 +22,9 @@ export function UserProfile() {
       <div class="container">
         <h1 class="title">User Profile</h1>
         <div class="card">
-          <p style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>
+          <p style={styles.profileHeader}>
             Viewing profile for user ID:{" "}
-            <strong style={{ color: "hsl(var(--primary))" }}>
+            <strong style={styles.userId}>
               {id}
             </strong>
           </p>
@@ -31,18 +33,34 @@ export function UserProfile() {
             database ([123, 456, carlos]) are allowed.
           </p>
 
-          <div style={{ "margin-top": "2rem", "text-align": "center" }}>
-            <button
-              type="button"
+          <div style={styles.buttonContainer}>
+            <Button
+              variant="secondary"
               onClick={handleLogout}
-              class="btn btn-secondary"
-              style={{ "font-size": "0.875rem" }}
+              style={styles.logoutButton}
             >
               Logout
-            </button>
+            </Button>
           </div>
         </div>
       </div>
     </Show>
   );
 }
+
+const styles = StyleSheet.create({
+  profileHeader: {
+    fontSize: "1.25rem",
+    marginBottom: "1rem",
+  },
+  userId: {
+    color: "hsl(var(--primary))",
+  },
+  buttonContainer: {
+    marginTop: "2rem",
+    textAlign: "center",
+  },
+  logoutButton: {
+    fontSize: "0.875rem",
+  },
+});

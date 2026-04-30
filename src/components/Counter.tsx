@@ -1,6 +1,7 @@
 import { createEffect, createSignal, h } from "@solid/index.ts";
 import { Icon } from "@components/Icon.tsx";
 import { StyleSheet } from "@utils/style.ts";
+import { Button } from "@components/Button.tsx";
 
 export function Counter() {
   const [count, setCount] = createSignal(
@@ -18,33 +19,33 @@ export function Counter() {
       </div>
       <div class="counter-value">{count}</div>
       <div class="button-group">
-        <button
-          type="button"
-          class="btn btn-secondary btn-icon"
+        <Button
+          variant="secondary"
+          class="btn-icon"
           onClick={() => setCount((c: number) => c - 1)}
           style={styles.button}
         >
           <Icon name="Minus" size={16} />
           <span class="btn-label">Decrease</span>
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary btn-icon"
+        </Button>
+        <Button
+          variant="primary"
+          class="btn-icon"
           onClick={() => setCount((c: number) => c + 1)}
           style={styles.button}
         >
           <Icon name="Plus" size={16} />
           <span class="btn-label">Increase</span>
-        </button>
-        <button
-          type="button"
-          class="btn btn-danger btn-icon"
+        </Button>
+        <Button
+          variant="danger"
+          class="btn-icon"
           style={styles.resetButton}
           onClick={() => setCount(0)}
         >
           <Icon name="RefreshCw" size={16} />
           <span class="btn-label">Reset</span>
-        </button>
+        </Button>
       </div>
     </div>
   );
