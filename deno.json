@@ -30,6 +30,7 @@
     "preview": "deno run -A scripts/server.ts",
     "dev": "deno task stop && deno task clean && deno run -A scripts/server.ts --dev",
     "start": "deno task stop && deno task clean && deno task build && deno task preview",
+    "cleanup": "deno run -A scripts/cleanup.ts",
     "test:coverage": "rm -rf coverage && deno test --coverage=coverage && deno coverage coverage"
   },
   "compilerOptions": {

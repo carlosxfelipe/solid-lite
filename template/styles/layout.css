@@ -1,0 +1,21 @@
+/* Main container with max width and horizontal centering */
+.container {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1.5rem;
+  max-width: 800px;
+}
+
+/* Full-width container with side padding */
+.container-fluid {
+  width: 100%;
+  padding: 1.5rem;
+}
+
+/* Centers content both vertically and horizontally across the entire viewport */
+.center-viewport {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+}

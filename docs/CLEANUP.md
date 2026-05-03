@@ -2,7 +2,33 @@
 
 **Solid Lite** is a "batteries-included" framework, which means it comes with several features and examples ready to demonstrate the potential of reactivity and the folder structure.
 
-When you are ready to start your own project from scratch, here are the recommended steps to clean up the examples and get the environment ready for your logic.
+When you are ready to start your own project from scratch, you have two options:
+
+1. **Automated (recommended)** — Run `deno task cleanup` and the framework replaces the demo `src/` with a clean starter template.
+2. **Manual** — Follow the step-by-step guide below if you want fine-grained control.
+
+## Automated Cleanup
+
+```bash
+deno task cleanup
+# or skip the confirmation prompt:
+deno task cleanup --yes
+```
+
+What it does:
+
+- Replaces the current `src/` with the contents of `template/` (a minimal starter with a single `Home` page, login disabled, and empty Navbar).
+- Removes the `template/` folder afterwards — this is a **one-shot operation**.
+- Keeps all other framework code intact (`solid/`, `scripts/`, `public/`, `deno.json`, CSS layers).
+
+> [!WARNING]
+> This action is destructive and cannot be undone. Commit your work first if you want to keep the demo as reference.
+
+---
+
+## Manual Cleanup
+
+If you prefer to clean up by hand (or want to keep parts of the demo), follow the steps below.
 
 ## 1. Remove Example Components
 
