@@ -27,14 +27,6 @@ deno task cleanup          # interactive confirmation
 deno task cleanup --yes    # skip the prompt (for CI / automation)
 ```
 
-What this command does:
-
-- **Replaces `src/`** entirely with the contents of the bundled `template/` folder — a minimal starter containing a single `Home` page, a simplified `Navbar`, login disabled (`IS_AUTH_ENABLED = false`), and a trimmed-down version of the CSS layers (`base.css`, `layout.css`, `app.css`) containing only the classes actually used by the template.
-- **Deletes `template/`** afterwards — this is a one-shot operation.
-- **Keeps the framework intact**: `solid/`, `scripts/`, `public/`, and `deno.json` are not touched.
-
-> Note: the CSS files in `src/styles/` are replaced (not preserved) because they live inside `src/`. The demo's `app.css` is larger and contains styles for the example components; the template's version is intentionally leaner.
-
 > ⚠️ This action is destructive and cannot be undone. Commit your work first if you want to keep the demo as reference.
 
 ## 📋 Requirements
