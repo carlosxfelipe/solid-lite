@@ -3,14 +3,12 @@ import { currentPath, matchPath, navigate, Route } from "@router/index.tsx";
 import { isLoggedIn } from "@router/auth.ts";
 
 import { Home } from "@pages/Home.tsx";
+import { About } from "@pages/About.tsx";
+import { Contact } from "@pages/Contact.tsx";
+import { UserProfile } from "@pages/UserProfile.tsx";
 import { Login } from "@pages/Login.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
-
-/**
- * MASTER AUTH SWITCH
- * Set to false to disable all login requirements and make Home the root page.
- */
-const IS_AUTH_ENABLED = false;
+import { IS_AUTH_ENABLED } from "@src/config.ts";
 
 export interface RouteDefinition {
   path: string;
@@ -31,6 +29,21 @@ export const routes: RouteDefinition[] = [
   {
     path: "/home",
     component: Home,
+    protected: IS_AUTH_ENABLED,
+  },
+  {
+    path: "/about",
+    component: About,
+    protected: IS_AUTH_ENABLED,
+  },
+  {
+    path: "/contact",
+    component: Contact,
+    protected: IS_AUTH_ENABLED,
+  },
+  {
+    path: "/user/:id",
+    component: UserProfile,
     protected: IS_AUTH_ENABLED,
   },
 ];
