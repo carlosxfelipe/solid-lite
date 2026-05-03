@@ -7,7 +7,7 @@ complex compiler.
 
 ✨ **Custom Zero-Dependency Hot Reload**: As a proof of concept for modern web engineering, this project includes a hand-crafted Development Server featuring instant Hot Reload. Instead of relying on heavy third-party bundlers or WebSocket libraries, it leverages Deno's native `watchFs`, `Server-Sent Events (SSE)`, and dynamic on-the-fly HTML script injection to automatically rebuild and refresh the browser on save.
 
-## Technical Features
+## ⚙️ Technical Features
 
 - **Fine-grained reactivity**: Uses signals and effects for surgical updates to
   the real DOM.
@@ -29,19 +29,21 @@ deno task cleanup --yes    # skip the prompt (for CI / automation)
 
 What this command does:
 
-- **Replaces `src/`** with the contents of the bundled `template/` folder — a minimal starter containing a single `Home` page, a simplified `Navbar`, login disabled (`IS_AUTH_ENABLED = false`), and only the CSS classes actually used.
+- **Replaces `src/`** entirely with the contents of the bundled `template/` folder — a minimal starter containing a single `Home` page, a simplified `Navbar`, login disabled (`IS_AUTH_ENABLED = false`), and a trimmed-down version of the CSS layers (`base.css`, `layout.css`, `app.css`) containing only the classes actually used by the template.
 - **Deletes `template/`** afterwards — this is a one-shot operation.
-- **Keeps the framework intact**: `solid/`, `scripts/`, `public/`, `deno.json`, and the CSS layers (`base.css`, `layout.css`, `app.css`) are not touched.
+- **Keeps the framework intact**: `solid/`, `scripts/`, `public/`, and `deno.json` are not touched.
+
+> Note: the CSS files in `src/styles/` are replaced (not preserved) because they live inside `src/`. The demo's `app.css` is larger and contains styles for the example components; the template's version is intentionally leaner.
 
 > ⚠️ This action is destructive and cannot be undone. Commit your work first if you want to keep the demo as reference.
 
-## Requirements
+## 📋 Requirements
 
 - [Deno](https://deno.land/) installed on your system.
 - [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno)
   for VS Code (recommended).
 
-## How to Run
+## ▶️ How to Run
 
 The project uses Deno's task system for automation.
 
@@ -71,7 +73,7 @@ To see all available commands, run the following command in your terminal:
 deno task
 ```
 
-## Code Formatting
+## 🎨 Code Formatting
 
 This project uses Deno's built-in formatter. To ensure consistent code style across the project, you can run:
 
@@ -94,7 +96,7 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 }
 ```
 
-## Folder Structure
+## 📁 Folder Structure
 
 - `/solid`: Core reactivity logic and runtime.
 - `/src`: Application source code (components, pages, styles).
@@ -102,7 +104,7 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 - `/public`: Static assets (favicon, redirects, etc.).
 - `/template`: Clean starter used by `deno task cleanup` to reset `src/`. If you choose to keep the demo inside `src/` and don't plan to run the cleanup task, you can safely delete this folder to avoid clutter.
 
-## Authentication & Security
+## 🔐 Authentication & Security
 
 Solid Lite features a "batteries-included" authentication system that supports both local development (mock mode) and real backend integration.
 
@@ -154,7 +156,7 @@ Totals: **105 tests passing**, with the 99.4% line coverage in `solid/index.ts` 
 
 ---
 
-## Important Note
+## ⚠️ Important Note
 
 **SolidJS** is a trademark of its respective owners.
 
@@ -162,6 +164,6 @@ This project, **Solid Lite**, is an independent, minimalist, and **strictly expe
 
 **Solid Lite has no commercial or business objectives.** It is a study of architectural concepts and a hobbyist experiment in building lean web runtimes.
 
-## License
+## 📜 License
 
 MIT
