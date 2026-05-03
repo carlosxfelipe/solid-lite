@@ -191,9 +191,14 @@ type StyleObject = Record<string, StyleScalar>;
 const CAMEL_TO_KEBAB = /[A-Z]/g;
 
 function camelToKebab(k: string) {
-  return k.startsWith("--")
-    ? k
-    : k.replace(CAMEL_TO_KEBAB, (m) => "-" + m.toLowerCase());
+  if (k.startsWith("--")) return k;
+  const out = k.replace(CAMEL_TO_KEBAB, (m) => "-" + m.toLowerCase());
+  return out.startsWith("webkit-") ||
+      out.startsWith("moz-") ||
+      out.startsWith("ms-") ||
+      out.startsWith("apple-")
+    ? "-" + out
+    : out;
 }
 
 function normalizeStyle(

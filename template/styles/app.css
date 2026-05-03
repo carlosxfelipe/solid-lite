@@ -105,6 +105,9 @@ body {
   cursor: pointer;
   height: 2.5rem;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .btn:disabled {

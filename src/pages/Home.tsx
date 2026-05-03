@@ -194,6 +194,10 @@ const styles = StyleSheet.create({
     borderRadius: "0.6rem",
     cursor: "pointer",
     transition: "transform 120ms ease, border-color 120ms ease",
+    userSelect: "none",
+    webkitUserSelect: "none",
+    webkitTapHighlightColor: "transparent",
+    touchAction: "manipulation",
   },
   counterValue: {
     fontSize: "1.75rem",
