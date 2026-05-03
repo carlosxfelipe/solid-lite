@@ -3,9 +3,6 @@ import { currentPath, matchPath, navigate, Route } from "@router/index.tsx";
 import { isLoggedIn } from "@router/auth.ts";
 
 import { Home } from "@pages/Home.tsx";
-import { About } from "@pages/About.tsx";
-import { Contact } from "@pages/Contact.tsx";
-import { UserProfile } from "@pages/UserProfile.tsx";
 import { Login } from "@pages/Login.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
 import { IS_AUTH_ENABLED } from "@src/config.ts";
@@ -29,22 +26,6 @@ export const routes: RouteDefinition[] = [
   {
     path: "/home",
     component: Home,
-    protected: IS_AUTH_ENABLED,
-  },
-  {
-    path: "/about",
-    component: About,
-    protected: IS_AUTH_ENABLED,
-  },
-  {
-    path: "/contact",
-    component: Contact,
-    protected: IS_AUTH_ENABLED,
-  },
-  {
-    path: "/user/:id",
-    component: UserProfile,
-    protected: IS_AUTH_ENABLED,
   },
 ];
 
