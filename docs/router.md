@@ -124,7 +124,7 @@ This file centralises all route configuration and exposes the `<AppRoutes />` co
 #### Master Auth Switch
 
 ```ts
-const IS_AUTH_ENABLED = true; // set to false to disable all auth requirements
+const IS_AUTH_ENABLED = false; // default: public SPA. Set to true to enable login & route guards.
 ```
 
 When `IS_AUTH_ENABLED` is `false`, the app behaves as a public SPA: `"/"` renders `<Home />`, no routes are protected, and the navbar is always visible.

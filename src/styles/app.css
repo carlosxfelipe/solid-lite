@@ -93,27 +93,6 @@ body {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 0.5rem;
-}
-
-.counter-value {
-  font-size: 3.5rem;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  margin-bottom: 1.5rem;
-  color: hsl(var(--foreground));
-}
-
-.button-group {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -243,7 +222,8 @@ main {
   letter-spacing: -0.01em;
 }
 
-.form-input, .form-textarea {
+.form-input,
+.form-textarea {
   width: 100%;
   padding: 0.75rem 1rem;
   background-color: hsl(var(--secondary) / 0.5);
@@ -256,18 +236,21 @@ main {
   outline: none;
 }
 
-.form-input:hover, .form-textarea:hover {
+.form-input:hover,
+.form-textarea:hover {
   background-color: hsl(var(--secondary));
   border-color: hsl(var(--muted-foreground) / 0.5);
 }
 
-.form-input:focus, .form-textarea:focus {
+.form-input:focus,
+.form-textarea:focus {
   background-color: hsl(var(--background));
   border-color: hsl(var(--ring));
   box-shadow: 0 0 0 3px hsla(var(--ring), 0.15);
 }
 
-.form-input::placeholder, .form-textarea::placeholder {
+.form-input::placeholder,
+.form-textarea::placeholder {
   color: hsl(var(--muted-foreground) / 0.7);
 }
 
@@ -289,16 +272,6 @@ main {
 }
 
 @media (max-width: 640px) {
-  .btn-label {
-    display: none;
-  }
-  .btn-icon {
-    padding: 0.5rem;
-    width: 2.5rem;
-  }
-  .counter-value {
-    font-size: 2.5rem;
-  }
   .navbar-links {
     display: none;
   }
@@ -313,13 +286,12 @@ main {
     left: 0;
     right: 0;
     background-color: hsl(var(--background));
-    border-top: 1px solid hsl(var(--border) / 0.5);
+    border-top: 1px solid hsl(var(--border));
     height: 4.5rem;
     justify-content: space-around;
     align-items: center;
     padding-bottom: env(safe-area-inset-bottom);
     z-index: 100;
-    box-shadow: 0 -4px 12px hsla(0, 0%, 0%, 0.05);
   }
 
   .mobile-nav-link {

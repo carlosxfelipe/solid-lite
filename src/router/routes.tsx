@@ -13,7 +13,7 @@ import { NotFound } from "@pages/NotFound.tsx";
  * MASTER AUTH SWITCH
  * Set to false to disable all login requirements and make Home the root page.
  */
-const IS_AUTH_ENABLED = true;
+const IS_AUTH_ENABLED = false;
 
 export interface RouteDefinition {
   path: string;
