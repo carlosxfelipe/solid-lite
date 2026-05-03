@@ -20,7 +20,20 @@ complex compiler.
 
 ## 🚀 Starting a New Project
 
-If you want to use this project as a template for your own application, we recommend following our **[Cleanup and Setup Guide](./docs/CLEANUP.md)**. It explains how to remove the example components and prepare the framework for your own logic.
+Solid Lite ships with a demo inside `src/` (a `Counter`, routed pages like `About`, `Contact`, `UserProfile`, and an enabled auth flow) to showcase the framework. When you are ready to start your own project, run:
+
+```bash
+deno task cleanup          # interactive confirmation
+deno task cleanup --yes    # skip the prompt (for CI / automation)
+```
+
+What this command does:
+
+- **Replaces `src/`** with the contents of the bundled `template/` folder — a minimal starter containing a single `Home` page, a simplified `Navbar`, login disabled (`IS_AUTH_ENABLED = false`), and only the CSS classes actually used.
+- **Deletes `template/`** afterwards — this is a one-shot operation.
+- **Keeps the framework intact**: `solid/`, `scripts/`, `public/`, `deno.json`, and the CSS layers (`base.css`, `layout.css`, `app.css`) are not touched.
+
+> ⚠️ This action is destructive and cannot be undone. Commit your work first if you want to keep the demo as reference.
 
 ## Requirements
 
@@ -87,6 +100,7 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 - `/src`: Application source code (components, pages, styles).
 - `/scripts`: Auxiliary automation tools and local server.
 - `/public`: Static assets (favicon, redirects, etc.).
+- `/template`: Clean starter used by `deno task cleanup` to reset `src/`. If you choose to keep the demo inside `src/` and don't plan to run the cleanup task, you can safely delete this folder to avoid clutter.
 
 ## Authentication & Security
 
@@ -117,6 +131,26 @@ To connect to a real server (e.g., following the [Backend Specification](./docs/
   - Automatically injects the `Authorization: Bearer <token>` header.
   - Triggers an automatic `logout()` if the server returns a `401 Unauthorized` status.
 - **Sync Route Guard**: Prevents UI flashing by blocking protected renders until the reactive auth state is verified.
+
+## 🧪 Testing & Coverage
+
+Solid Lite ships with an extensive automated test suite that exercises both the **reactive core** (signals, effects, memos, resources, lifecycle) and the **DOM-binding layer** (`h`, `render`, `Show`, `For`, `Switch/Match`, `Fragment`, event delegation, refs, `dangerouslySetInnerHTML` sanitization, SVG namespace, cleanup paths, etc.). DOM tests run headlessly via `@b-fuze/deno-dom` — no browser required.
+
+```bash
+deno test                  # run all tests
+deno task test:coverage    # run tests + generate HTML/LCOV coverage reports
+```
+
+Current numbers for the code Solid Lite actually owns and maintains:
+
+| File             | Branch     | Functions | Lines      |
+| ---------------- | ---------- | --------- | ---------- |
+| `dom_setup.ts`   | **100.0%** | **100%**  | **100.0%** |
+| `solid/index.ts` | **94.0%**  | **88.9%** | **99.4%**  |
+
+Totals: **105 tests passing**, with the 99.4% line coverage in `solid/index.ts` only missing three defensive branches that are unreachable through the public API.
+
+> The framework also vendors `solid/solid.js` (the SolidJS reactivity engine). Its numbers are included in the full coverage report but are not part of the Solid Lite implementation.
 
 ---
 

@@ -37,11 +37,23 @@ async function confirmOrExit(): Promise<void> {
   }
 }
 
+async function isEmptyDir(path: string): Promise<boolean> {
+  for await (const _ of Deno.readDir(path)) return false;
+  return true;
+}
+
 async function main(): Promise<void> {
   if (!(await exists(TEMPLATE_DIR))) {
     console.error(
       `❌ \`${TEMPLATE_DIR}/\` not found. Nothing to do.\n` +
         `   (If the project was already cleaned up, this is expected.)`,
+    );
+    Deno.exit(1);
+  }
+
+  if (await isEmptyDir(TEMPLATE_DIR)) {
+    console.error(
+      `❌ \`${TEMPLATE_DIR}/\` is empty. Aborting to avoid wiping \`${SRC_DIR}/\`.`,
     );
     Deno.exit(1);
   }
