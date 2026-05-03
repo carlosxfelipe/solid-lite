@@ -1,8 +1,8 @@
 import "./dom_setup.ts";
 import { assertEquals } from "@std/assert";
-import { createSignal } from "./solid.js";
 import {
   Child,
+  createSignal,
   For,
   Fragment,
   h,

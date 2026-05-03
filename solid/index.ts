@@ -18,16 +18,50 @@ export const createRoot = SolidCore.createRoot as <T>(
   fn: (dispose: () => void) => T,
 ) => T;
 /**
+ * Brand symbol used to tag reactive accessors (signal/memo getters) so the
+ * runtime can distinguish them from plain zero-arity functions without relying
+ * on the brittle `fn.length === 0` heuristic.
+ */
+const SIGNAL = Symbol.for("solid-lite.signal");
+
+/**
+ * A reactive accessor: a getter function tagged with the SIGNAL symbol. Used
+ * for type-level branding so signals/memos can be inferred separately from
+ * regular functions.
+ */
+export type Accessor<T> = (() => T) & { readonly [SIGNAL]?: true };
+
+function tagAccessor<T>(fn: () => T): Accessor<T> {
+  (fn as unknown as { [k: symbol]: boolean })[SIGNAL] = true;
+  return fn as Accessor<T>;
+}
+
+/**
  * Creates a reactive signal.
+ *
+ * The returned getter is tagged with an internal SIGNAL symbol so the DOM
+ * runtime can detect it precisely (no aritygetters heuristics).
  *
  * @param value The initial value of the signal.
  * @param options Optional settings like a custom equality function.
  * @returns A tuple containing a getter and a setter.
  */
-export const createSignal = SolidCore.createSignal as <T>(
+export const createSignal = (<T>(
   value: T,
   options?: { equals?: false | ((prev: T, next: T) => boolean) },
-) => [() => T, (v: T | ((prev: T) => T)) => T];
+): [Accessor<T>, (v: T | ((prev: T) => T)) => T] => {
+  const tuple = (
+    SolidCore.createSignal as (
+      v: T,
+      o?: typeof options,
+    ) => [() => T, (v: T | ((prev: T) => T)) => T]
+  )(value, options);
+  return [tagAccessor(tuple[0]), tuple[1]];
+}) as <T>(
+  value: T,
+  options?: { equals?: false | ((prev: T, next: T) => boolean) },
+) => [Accessor<T>, (v: T | ((prev: T) => T)) => T];
+
 /**
  * Creates a reactive effect that runs when its dependencies change.
  *
@@ -38,6 +72,19 @@ export const createEffect = SolidCore.createEffect as <T>(
   fn: (v?: T) => T,
   value?: T,
 ) => void;
+
+/**
+ * Creates a memoized reactive computation. The returned getter is tagged with
+ * the SIGNAL symbol so it is treated as reactive in JSX props.
+ *
+ * @param fn The computation function.
+ * @returns A reactive accessor for the computed value.
+ */
+export const createMemo = (<T>(fn: () => T): Accessor<T> => {
+  const m = (SolidCore.createMemo as unknown as (f: () => T) => () => T)(fn);
+  return tagAccessor(m);
+}) as <T>(fn: () => T) => Accessor<T>;
+
 /**
  * Registers a cleanup function that runs when the current scope is disposed.
  *
@@ -119,12 +166,24 @@ type MatchNode = {
   __isMatch: true;
 };
 
+/**
+ * Detects a function used in any reactive JSX position (prop value or child).
+ *
+ * Solid Lite treats any function as a reactive thunk that will be wrapped in a
+ * `createEffect` and re-evaluated when its tracked dependencies change — this
+ * mirrors the post-compilation runtime behavior of SolidJS, where every dynamic
+ * JSX expression becomes a thunk. Event handlers (`onXxx`) bypass this path
+ * because they are dispatched by name before the generic check runs.
+ *
+ * Functions originating from `createSignal` and `createMemo` are additionally
+ * branded as {@link Accessor} for type-level guarantees, but the runtime check
+ * intentionally accepts any callable for ergonomic inline reactivity.
+ */
 function isSignalGetter<T = unknown>(x: unknown): x is () => T {
-  return (
-    typeof x === "function" &&
-    (x as (...args: unknown[]) => unknown).length === 0
-  );
+  return typeof x === "function";
 }
+
+const isChildThunk = isSignalGetter;
 
 type StyleScalar = string | number | null | undefined;
 type StyleObject = Record<string, StyleScalar>;
@@ -210,7 +269,8 @@ function setAttr(el: Element, name: string, value: unknown) {
         ) {
           const val = attr.value.trim().toLowerCase();
           if (
-            val.startsWith("javascript:") || val.startsWith("data:") ||
+            val.startsWith("javascript:") ||
+            val.startsWith("data:") ||
             val.startsWith("vbscript:")
           ) {
             node.setAttribute(attr.name, "about:blank");
@@ -511,7 +571,7 @@ export function h(
   }
 
   for (const c of children.flat()) {
-    if (isSignalGetter(c)) appendDynamic(el, c as () => unknown);
+    if (isChildThunk(c)) appendDynamic(el, c);
     else appendStatic(el, c as Exclude<Child, () => unknown>);
   }
 
@@ -525,7 +585,7 @@ export function Fragment(props: { children?: Child[] } = {}, ...kids: Child[]) {
   const list = (props.children ?? kids) as Child[];
   const f = document.createDocumentFragment();
   for (const k of (list ?? []).flat()) {
-    if (isSignalGetter(k)) appendDynamic(f, k as () => unknown);
+    if (isChildThunk(k)) appendDynamic(f, k);
     else appendStatic(f, k as Exclude<Child, () => unknown>);
   }
   return f;
@@ -549,9 +609,11 @@ export function render(node: Node, container: Element) {
  * @param props.children The content to show when true.
  * @param props.fallback The content to show when false.
  */
-export function Show(
-  props: { when: () => unknown; children: Child; fallback?: Child },
-) {
+export function Show(props: {
+  when: () => unknown;
+  children: Child;
+  fallback?: Child;
+}) {
   const start = document.createComment("show-start");
   const end = document.createComment("show-end");
   const frag = document.createDocumentFragment();
@@ -590,18 +652,21 @@ export function For<T>(props: {
   frag.appendChild(end);
 
   const renderFn = typeof props.children === "function"
-    ? props.children as Renderer<T>
-    : (Array.isArray(props.children) && typeof props.children[0] === "function"
-      ? props.children[0] as Renderer<T>
-      : undefined);
+    ? (props.children as Renderer<T>)
+    : Array.isArray(props.children) && typeof props.children[0] === "function"
+    ? (props.children[0] as Renderer<T>)
+    : undefined;
 
   if (!renderFn) return frag;
 
-  const cache = new Map<Key, {
-    nodes: Node[];
-    dispose: () => void;
-    setIndex: (i: number) => void;
-  }>();
+  const cache = new Map<
+    Key,
+    {
+      nodes: Node[];
+      dispose: () => void;
+      setIndex: (i: number) => void;
+    }
+  >();
 
   createEffect(() => {
     const list = props.each() || [];

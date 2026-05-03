@@ -24,10 +24,30 @@ const [count, setCount] = createSignal(0);
 <div>{count()}</div>;
 ```
 
-In solid-lite, `isSignalGetter` in `index.ts` detects zero-arity functions and treats
-them as reactive getters automatically. You can pass either `count` or `count()` —
-both work, but passing `count` (without calling it) is more efficient because the
-runtime wraps the getter in `createEffect`.
+> ⚠️ **Do not use the SolidJS syntax `{count()}` directly in solid-lite — you
+> will lose reactivity.**
+
+**Why:** SolidJS relies on a compiler (Babel/Vite plugin) that rewrites
+`{count()}` into a thunk before the runtime ever sees it. Solid-lite has no
+compile step — what you write is what runs. So `{count()}` evaluates the
+signal **immediately** in plain JavaScript, and only the resulting value (e.g.
+`0`) is handed to the runtime. There is nothing left to track, and the DOM
+node freezes at the initial value.
+
+**The rule:** in solid-lite, the runtime tracks **functions**, not values. Pass
+the getter directly, or wrap derived expressions in a thunk:
+
+```tsx
+const [count, setCount] = createSignal(0);
+
+<div>{count}</div>; // ✅ getter passed → reactive
+<div>{() => `count is ${count()}`}</div>; // ✅ thunk → reactive
+<div>{count()}</div>; // ❌ value passed → frozen at 0
+```
+
+`createSignal` and `createMemo` getters are additionally branded with the
+`Accessor<T>` type for compile-time guarantees. Event handlers (`onClick`,
+`onInput`, etc.) bypass this rule because they are dispatched by name.
 
 ---
 
@@ -81,9 +101,12 @@ as a getter and calls `!!props.when()` internally.
 </For>;
 ```
 
-In solid-lite, `<For>` now uses the same fine-grained logic as SolidJS. The
-only syntax difference is that solid-lite expects `props.each` to be the getter
-function itself, while SolidJS expects the evaluated value.
+In solid-lite, `<For>` is key-based (it reuses DOM nodes by their stable key)
+but uses a simpler reorder algorithm than SolidJS — there is no Longest
+Increasing Subsequence optimization, so heavy reorderings may perform slightly
+more `insertBefore` calls. The syntax difference is that solid-lite expects
+`props.each` to be the getter function itself, while SolidJS expects the
+evaluated value.
 
 ---
 

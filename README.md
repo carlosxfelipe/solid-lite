@@ -148,9 +148,9 @@ Current numbers for the code Solid Lite actually owns and maintains:
 | File             | Branch     | Functions | Lines      |
 | ---------------- | ---------- | --------- | ---------- |
 | `dom_setup.ts`   | **100.0%** | **100%**  | **100.0%** |
-| `solid/index.ts` | **94.0%**  | **88.9%** | **99.4%**  |
+| `solid/index.ts` | **94.0%**  | **86.7%** | **98.7%**  |
 
-Totals: **105 tests passing**, with the 99.4% line coverage in `solid/index.ts` only missing three defensive branches that are unreachable through the public API.
+Totals: **105 tests passing**, with the remaining uncovered lines in `solid/index.ts` corresponding to defensive branches that are unreachable through the public API.
 
 > The framework also vendors `solid/solid.js` (the SolidJS reactivity engine). Its numbers are included in the full coverage report but are not part of the Solid Lite implementation.
 
