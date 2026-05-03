@@ -26,6 +26,16 @@ globalThis.Comment = Comment;
 globalThis.Text = Text;
 // @ts-ignore: mock globals
 globalThis.DocumentFragment = DocumentFragment;
+// @ts-ignore: mock globals
+globalThis.DOMParser = DOMParser;
+
+// Polyfill createElementNS for deno-dom (only namespace stub used by SVG)
+// @ts-ignore: mock globals
+doc.createElementNS = (ns: string, tag: string) => {
+  const el = doc.createElement(tag);
+  Object.defineProperty(el, "namespaceURI", { value: ns, configurable: true });
+  return el;
+};
 
 // @ts-ignore: mock globals
 globalThis.HTMLElement = Element;
@@ -50,9 +60,9 @@ Object.defineProperty(Element.prototype, "style", {
           // @ts-ignore: mock globals
           this.setAttribute(
             "style",
-            Array.from(styles.entries()).map(([k, v]) => `${k}: ${v}`).join(
-              "; ",
-            ),
+            Array.from(styles.entries())
+              .map(([k, v]) => `${k}: ${v}`)
+              .join("; "),
           );
         },
         removeProperty: (k: string) => {
@@ -60,9 +70,9 @@ Object.defineProperty(Element.prototype, "style", {
           // @ts-ignore: mock globals
           this.setAttribute(
             "style",
-            Array.from(styles.entries()).map(([k, v]) => `${k}: ${v}`).join(
-              "; ",
-            ),
+            Array.from(styles.entries())
+              .map(([k, v]) => `${k}: ${v}`)
+              .join("; "),
           );
         },
       };
