@@ -100,11 +100,11 @@ If you use VS Code and have the **Prettier** extension installed, it may conflic
 
 Solid Lite features a "batteries-included" authentication system that supports both local development (mock mode) and real backend integration.
 
-By default, authentication is **disabled** (`const IS_AUTH_ENABLED = false`) in `src/router/routes.tsx` so the demo opens directly on `Home`. Flip it to `true` to enable login, route guards, and the navbar hiding behavior on `/login`.
+By default, authentication is **disabled** (`const IS_AUTH_ENABLED = false`) in `src/config.ts` so the demo opens directly on `Home`. Flip it to `true` to enable login, route guards, and the navbar hiding behavior on `/login`.
 
 ### Quick Test (Mock Mode)
 
-When `IS_AUTH_ENABLED = true`, the project ships in **Mock Mode** (empty `API_BASE` in `auth.ts`) so you can test the authenticated flow immediately using:
+When `IS_AUTH_ENABLED = true`, the project ships in **Mock Mode** (empty `API_BASE` in `src/config.ts`) so you can test the authenticated flow immediately using:
 
 - **Email**: `admin@example.com`
 - **Password**: `admin123`
@@ -113,7 +113,7 @@ When `IS_AUTH_ENABLED = true`, the project ships in **Mock Mode** (empty `API_BA
 
 To connect to a real server (e.g., following the [Backend Specification](./docs/backend-spec.md)):
 
-1. Open `src/router/auth.ts`.
+1. Open `src/config.ts`.
 2. Set `API_BASE` to your backend URL (e.g., `https://your-api.com`).
 3. The `login` function will automatically switch to performing real `fetch` requests and handling JWT tokens.
 

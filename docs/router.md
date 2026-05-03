@@ -58,10 +58,12 @@ export function App() {
 The demo app splits routing into three files for better separation of concerns:
 
 ```
-src/router/
-├── index.tsx   ← core router primitives (Route, Link, navigate, params…)
-├── routes.tsx  ← route definitions, AppRoutes component, auth guard
-└── auth.ts     ← JWT auth state and helpers
+src/
+├── config.ts   ← application-wide constants (port, API base, auth switch)
+└── router/
+    ├── index.tsx   ← core router primitives (Route, Link, navigate, params…)
+    ├── routes.tsx  ← route definitions, AppRoutes component, auth guard
+    └── auth.ts     ← JWT auth state and helpers
 ```
 
 ### `router/index.tsx` — Core Primitives
@@ -124,16 +126,19 @@ This file centralises all route configuration and exposes the `<AppRoutes />` co
 #### Master Auth Switch
 
 ```ts
-const IS_AUTH_ENABLED = false; // default: public SPA. Set to true to enable login & route guards.
+// Located in src/config.ts
+export const IS_AUTH_ENABLED = false; // default: public SPA. Set to true to enable login & route guards.
 ```
 
 When `IS_AUTH_ENABLED` is `false`, the app behaves as a public SPA: `"/"` renders `<Home />`, no routes are protected, and the navbar is always visible.
 
 #### Route Definition
 
-Routes are declared as a `RouteDefinition[]` array:
+Routes are declared as a `RouteDefinition[]` array. Since the auth switch is now in `src/config.ts`, it is imported as follows:
 
 ```tsx
+import { IS_AUTH_ENABLED } from "@src/config.ts";
+
 export interface RouteDefinition {
   path: string;
   component: (props: Record<string, unknown>) => Node;
@@ -244,7 +249,7 @@ Manages authentication using `sessionStorage` (token is cleared when the tab clo
 
 #### Mock Mode
 
-When `API_BASE` is an empty string, `login()` falls back to a built-in mock:
+When `API_BASE` (defined in `src/config.ts`) is an empty string, `login()` falls back to a built-in mock:
 
 - **Email:** `admin@example.com`
 - **Password:** `admin123`

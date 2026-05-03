@@ -8,12 +8,7 @@ import { Contact } from "@pages/Contact.tsx";
 import { UserProfile } from "@pages/UserProfile.tsx";
 import { Login } from "@pages/Login.tsx";
 import { NotFound } from "@pages/NotFound.tsx";
-
-/**
- * MASTER AUTH SWITCH
- * Set to false to disable all login requirements and make Home the root page.
- */
-const IS_AUTH_ENABLED = false;
+import { IS_AUTH_ENABLED } from "@src/config.ts";
 
 export interface RouteDefinition {
   path: string;

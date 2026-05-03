@@ -2,7 +2,7 @@ import { serveDir, serveFile } from "@std/http/file-server";
 import { bold, cyan, green, red, yellow } from "@std/fmt/colors";
 import { debounce } from "@std/async/debounce";
 
-import { PORT } from "./config.ts";
+import { PORT } from "@src/config.ts";
 const IS_DEV = Deno.args.includes("--dev");
 const clients = new Set<ReadableStreamDefaultController>();
 
@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
       },
     });
   }
@@ -78,7 +78,9 @@ const handler = async (req: Request): Promise<Response> => {
 
   // Inject script for HTML files in Dev mode
   if (
-    IS_DEV && res.ok && res.headers.get("content-type")?.includes("text/html")
+    IS_DEV &&
+    res.ok &&
+    res.headers.get("content-type")?.includes("text/html")
   ) {
     const text = await res.text();
     // Re-create headers to clear content-length which is now incorrect
@@ -128,23 +130,30 @@ const handler = async (req: Request): Promise<Response> => {
   return res;
 };
 
-Deno.serve({
-  port: PORT,
-  onListen({ port, hostname }) {
-    const host = hostname === "0.0.0.0" ? "localhost" : hostname;
-    console.log(
-      `\n  ${green("➜")}  ${bold("Local:")}   ${
-        cyan(`http://${host}:${port}/`)
-      }`,
-    );
-    if (IS_DEV) {
+Deno.serve(
+  {
+    port: PORT,
+    onListen({ port, hostname }) {
+      const host = hostname === "0.0.0.0" ? "localhost" : hostname;
       console.log(
-        `  ${green("➜")}  ${bold("Mode:")}    ${
-          yellow("development (hot reload)")
-        }\n`,
+        `\n  ${green("➜")}  ${bold("Local:")}   ${
+          cyan(
+            `http://${host}:${port}/`,
+          )
+        }`,
       );
-    } else {
-      console.log("");
-    }
+      if (IS_DEV) {
+        console.log(
+          `  ${green("➜")}  ${bold("Mode:")}    ${
+            yellow(
+              "development (hot reload)",
+            )
+          }\n`,
+        );
+      } else {
+        console.log("");
+      }
+    },
   },
-}, handler);
+  handler,
+);

@@ -1,4 +1,4 @@
-import { PORT } from "./config.ts";
+import { PORT } from "@src/config.ts";
 
 const cmd = new Deno.Command("lsof", {
   args: ["-ti", `:${PORT}`],
