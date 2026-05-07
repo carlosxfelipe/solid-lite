@@ -1,4 +1,4 @@
-import { createEffect, createSignal, h } from "@solid/index.ts";
+import { createEffect, createSignal, derived, h } from "@solid/index.ts";
 import { StyleSheet } from "@utils/style.ts";
 
 export function Home() {
@@ -73,7 +73,7 @@ export function Home() {
         <button
           type="button"
           style={styles.counterBtn}
-          onClick={() => setCount((c: number) => c - 1)}
+          onClick={() => setCount((c: number) => Math.max(0, c - 1))}
           aria-label="decrement"
         >
           −1
@@ -87,6 +87,10 @@ export function Home() {
         >
           +1
         </button>
+      </div>
+
+      <div style={styles.derivedBadge}>
+        derived: {derived(() => count() * 2)}
       </div>
 
       <div style={styles.links}>
@@ -221,5 +225,17 @@ const styles = StyleSheet.create({
   },
   linkSep: {
     opacity: "0.5",
+  },
+  derivedBadge: {
+    position: "relative",
+    zIndex: "1",
+    fontSize: "0.9rem",
+    fontWeight: "500",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    color: "hsl(var(--muted-foreground))",
+    background: "hsl(var(--muted))",
+    padding: "0.35rem 0.75rem",
+    borderRadius: "0.5rem",
+    marginBottom: "2.5rem",
   },
 });

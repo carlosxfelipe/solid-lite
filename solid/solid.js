@@ -1,3 +1,7 @@
+// Basic port modification of Reacts Scheduler: https://github.com/facebook/react/tree/master/packages/scheduler
+
+// experimental new feature proposal stuff
+
 let taskIdCounter = 1,
   isCallbackScheduled = false,
   isPerformingWork = false,
@@ -11,11 +15,19 @@ let taskIdCounter = 1,
   scheduleCallback = null,
   scheduledCallback = null;
 const maxSigned31BitInt = 1073741823;
+/* istanbul ignore next */
 function setupScheduler() {
   const channel = new MessageChannel(),
+    port1 = channel.port1,
     port = channel.port2;
+  // In Node.js, active MessagePort listeners keep the event loop alive.
+  // Calling unref() allows the process to exit naturally when there is no
+  // other work keeping it alive (e.g. after dispose). unref is not available
+  // in browsers, so we guard the call.
+  if (typeof port1.unref === "function") port1.unref();
+  if (typeof port.unref === "function") port.unref();
   scheduleCallback = () => port.postMessage(null);
-  channel.port1.onmessage = () => {
+  port1.onmessage = () => {
     if (scheduledCallback !== null) {
       const currentTime = performance.now();
       deadline = currentTime + yieldInterval;
@@ -26,6 +38,8 @@ function setupScheduler() {
           scheduledCallback = null;
         } else port.postMessage(null);
       } catch (error) {
+        // If a scheduler task throws, exit the current browser task so the
+        // error can be observed.
         port.postMessage(null);
         throw error;
       }
@@ -36,15 +50,28 @@ function setupScheduler() {
     shouldYieldToHost = () => {
       const currentTime = performance.now();
       if (currentTime >= deadline) {
+        // There's no time left. We may want to yield control of the main
+        // thread, so the browser can perform high priority tasks. The main ones
+        // are painting and user input. If there's a pending paint or a pending
+        // input, then we should yield. But if there's neither, then we can
+        // yield less often while remaining responsive. We'll eventually yield
+        // regardless, since there could be a pending paint that wasn't
+        // accompanied by a call to `requestPaint`, or other main thread tasks
+        // like network events.
         if (scheduling.isInputPending()) {
           return true;
         }
+        // There's no pending input. Only yield if we've reached the max
+        // yield interval.
         return currentTime >= maxDeadline;
       } else {
+        // There's still time left in the frame.
         return false;
       }
     };
   } else {
+    // `isInputPending` is not available. Since we have no way of knowing if
+    // there's pending input, always yield at the end of the frame.
     shouldYieldToHost = () => performance.now() >= deadline;
   }
 }
@@ -84,6 +111,7 @@ function cancelCallback(task) {
   task.fn = null;
 }
 function flushWork(initialTime) {
+  // We'll need a host callback the next time work is scheduled.
   isCallbackScheduled = false;
   isPerformingWork = true;
   try {
@@ -98,6 +126,7 @@ function workLoop(initialTime) {
   currentTask = taskQueue[0] || null;
   while (currentTask !== null) {
     if (currentTask.expirationTime > currentTime && shouldYieldToHost()) {
+      // This currentTask hasn't expired, and we've reached the deadline.
       break;
     }
     const callback = currentTask.fn;
@@ -112,6 +141,7 @@ function workLoop(initialTime) {
     } else taskQueue.shift();
     currentTask = taskQueue[0] || null;
   }
+  // Return whether there's additional work
   return currentTask !== null;
 }
 
@@ -143,6 +173,32 @@ function nextHydrateContext() {
   };
 }
 
+// Inspired by S.js by Adam Haile, https://github.com/adamhaile/S
+/**
+The MIT License (MIT)
+
+Copyright (c) 2017 Adam Haile
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+// replaced during build
 const IS_DEV = false;
 const equalFn = (a, b) => a === b;
 const $PROXY = Symbol("solid-proxy");
@@ -157,11 +213,7 @@ let runEffects = runQueue;
 const STALE = 1;
 const PENDING = 2;
 const UNOWNED = {
-  owned: null,
-  cleanups: null,
-  context: null,
-  owner: null
-};
+  };
 const NO_INIT = {};
 var Owner = null;
 let Transition = null;
@@ -171,18 +223,43 @@ let Listener = null;
 let Updates = null;
 let Effects = null;
 let ExecCount = 0;
+
+/** Object storing callbacks for debugging during development */
+const DevHooks = {
+  afterUpdate: null,
+  afterCreateOwner: null,
+  afterCreateSignal: null,
+  afterRegisterGraph: null
+};
+/**
+ * Creates a new non-tracked reactive context that doesn't auto-dispose
+ *
+ * @param fn a function in which the reactive state is scoped
+ * @param detachedOwner optional reactive context to bind the root to
+ * @returns the output of `fn`.
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/create-root
+ */
 function createRoot(fn, detachedOwner) {
   const listener = Listener,
     owner = Owner,
     unowned = fn.length === 0,
     current = detachedOwner === undefined ? owner : detachedOwner,
-    root = unowned ? UNOWNED : {
+    root = unowned ? {
+      owned: null,
+      cleanups: null,
+      context: null,
+      owner: null
+    }  : {
       owned: null,
       cleanups: null,
       context: current ? current.context : null,
       owner: current
     },
-    updateFn = unowned ? fn : () => fn(() => untrack(() => cleanNode(root)));
+    updateFn = unowned ? () => fn(() => {
+      throw new Error("Dispose method must be an explicit argument to createRoot function");
+    })  : () => fn(() => untrack(() => cleanNode(root)));
+  DevHooks.afterCreateOwner && DevHooks.afterCreateOwner(root);
   Owner = root;
   Listener = null;
   try {
@@ -192,6 +269,31 @@ function createRoot(fn, detachedOwner) {
     Owner = owner;
   }
 }
+
+/**
+ * Creates a simple reactive state with a getter and setter
+ * ```typescript
+ * const [state: Accessor<T>, setState: Setter<T>] = createSignal<T>(
+ *  value: T,
+ *  options?: { name?: string, equals?: false | ((prev: T, next: T) => boolean) }
+ * )
+ * ```
+ * @param value initial value of the state; if empty, the state's type will automatically extended with undefined; otherwise you need to extend the type manually if you want setting to undefined not be an error
+ * @param options optional object with a name for debugging purposes and equals, a comparator function for the previous and next value to allow fine-grained control over the reactivity
+ *
+ * @returns ```typescript
+ * [state: Accessor<T>, setState: Setter<T>]
+ * ```
+ * * the Accessor is merely a function that returns the current value and registers each call to the reactive root
+ * * the Setter is a function that allows directly setting or mutating the value:
+ * ```typescript
+ * const [count, setCount] = createSignal(0);
+ * setCount(count => count + 1);
+ * ```
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-signal
+ */
+
 function createSignal(value, options) {
   options = options ? Object.assign({}, signalOptions, options) : signalOptions;
   const s = {
@@ -200,6 +302,15 @@ function createSignal(value, options) {
     observerSlots: null,
     comparator: options.equals || undefined
   };
+  {
+    if (options.name) s.name = options.name;
+    if (options.internal) {
+      s.internal = true;
+    } else {
+      registerGraph(s);
+      if (DevHooks.afterCreateSignal) DevHooks.afterCreateSignal(s);
+    }
+  }
   const setter = value => {
     if (typeof value === "function") {
       if (Transition && Transition.running && Transition.sources.has(s)) value = value(s.tValue);else value = value(s.value);
@@ -208,28 +319,99 @@ function createSignal(value, options) {
   };
   return [readSignal.bind(s), setter];
 }
+
+// Magic type that when used at sites where generic types are inferred from, will prevent those sites from being involved in the inference.
+// https://github.com/microsoft/TypeScript/issues/14829
+// TypeScript Discord conversation: https://discord.com/channels/508357248330760243/508357248330760249/911266491024949328
+
+// Also similar to OnEffectFunction
+
+/**
+ * Creates a reactive computation that runs immediately before render, mainly used to write to other reactive primitives
+ * ```typescript
+ * export function createComputed<Next, Init = Next>(
+ *   fn: (v: Init | Next) => Next,
+ *   value?: Init,
+ *   options?: { name?: string }
+ * ): void;
+ * ```
+ * @param fn a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options allows to set a name in dev mode for debugging purposes
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-computed
+ */
+
 function createComputed(fn, value, options) {
-  const c = createComputation(fn, value, true, STALE);
+  const c = createComputation(fn, value, true, STALE, options );
   if (Scheduler && Transition && Transition.running) Updates.push(c);else updateComputation(c);
 }
+
+/**
+ * Creates a reactive computation that runs during the render phase as DOM elements are created and updated but not necessarily connected
+ * ```typescript
+ * export function createRenderEffect<T>(
+ *   fn: (v: T) => T,
+ *   value?: T,
+ *   options?: { name?: string }
+ * ): void;
+ * ```
+ * @param fn a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options allows to set a name in dev mode for debugging purposes
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-render-effect
+ */
+
 function createRenderEffect(fn, value, options) {
-  const c = createComputation(fn, value, false, STALE);
+  const c = createComputation(fn, value, false, STALE, options );
   if (Scheduler && Transition && Transition.running) Updates.push(c);else updateComputation(c);
 }
+
+/**
+ * Creates a reactive computation that runs after the render phase
+ * ```typescript
+ * export function createEffect<T>(
+ *   fn: (v: T) => T,
+ *   value?: T,
+ *   options?: { name?: string }
+ * ): void;
+ * ```
+ * @param fn a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options allows to set a name in dev mode for debugging purposes
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-effect
+ */
+
 function createEffect(fn, value, options) {
   runEffects = runUserEffects;
-  const c = createComputation(fn, value, false, STALE),
+  const c = createComputation(fn, value, false, STALE, options ),
     s = SuspenseContext && useContext(SuspenseContext);
   if (s) c.suspense = s;
   if (!options || !options.render) c.user = true;
   Effects ? Effects.push(c) : updateComputation(c);
 }
+
+/**
+ * Creates a reactive computation that runs after the render phase with flexible tracking
+ * ```typescript
+ * export function createReaction(
+ *   onInvalidate: () => void,
+ *   options?: { name?: string }
+ * ): (fn: () => void) => void;
+ * ```
+ * @param invalidated a function that is called when tracked function is invalidated.
+ * @param options allows to set a name in dev mode for debugging purposes
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-reaction
+ */
 function createReaction(onInvalidate, options) {
   let fn;
   const c = createComputation(() => {
       fn ? fn() : untrack(onInvalidate);
       fn = undefined;
-    }, undefined, false, 0),
+    }, undefined, false, 0, options ),
     s = SuspenseContext && useContext(SuspenseContext);
   if (s) c.suspense = s;
   c.user = true;
@@ -238,9 +420,29 @@ function createReaction(onInvalidate, options) {
     updateComputation(c);
   };
 }
+
+/**
+ * Creates a readonly derived reactive memoized signal
+ * ```typescript
+ * export function createMemo<T>(
+ *   fn: (v: T) => T,
+ *   value?: T,
+ *   options?: { name?: string, equals?: false | ((prev: T, next: T) => boolean) }
+ * ): () => T;
+ * ```
+ * @param fn a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param value an optional initial value for the computation; if set, fn will never receive undefined as first argument
+ * @param options allows to set a name in dev mode for debugging purposes and use a custom comparison function in equals
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-memo
+ */
+// The extra Prev generic parameter separates inference of the effect input
+// parameter type from inference of the effect return type, so that the effect
+// return type is always used as the memo Accessor's return type.
+
 function createMemo(fn, value, options) {
   options = options ? Object.assign({}, signalOptions, options) : signalOptions;
-  const c = createComputation(fn, value, true, 0);
+  const c = createComputation(fn, value, true, 0, options );
   c.observers = null;
   c.observerSlots = null;
   c.comparator = options.equals || undefined;
@@ -253,6 +455,36 @@ function createMemo(fn, value, options) {
 function isPromise(v) {
   return v && typeof v === "object" && "then" in v;
 }
+
+/**
+ * Creates a resource that wraps a repeated promise in a reactive pattern:
+ * ```typescript
+ * // Without source
+ * const [resource, { mutate, refetch }] = createResource(fetcher, options);
+ * // With source
+ * const [resource, { mutate, refetch }] = createResource(source, fetcher, options);
+ * ```
+ * @param source - reactive data function which has its non-nullish and non-false values passed to the fetcher, optional
+ * @param fetcher - function that receives the source (true if source not provided), the last or initial value, and whether the resource is being refetched, and returns a value or a Promise:
+ * ```typescript
+ * const fetcher: ResourceFetcher<S, T, R> = (
+ *   sourceOutput: S,
+ *   info: { value: T | undefined, refetching: R | boolean }
+ * ) => T | Promise<T>;
+ * ```
+ * @param options - an optional object with the initialValue and the name (for debugging purposes); see {@link ResourceOptions}
+ *
+ * @returns ```typescript
+ * [Resource<T>, { mutate: Setter<T>, refetch: () => void }]
+ * ```
+ *
+ * * Setting an `initialValue` in the options will mean that both the prev() accessor and the resource should never return undefined (if that is wanted, you need to extend the type with undefined)
+ * * `mutate` allows to manually overwrite the resource without calling the fetcher
+ * * `refetch` will re-run the fetcher without changing the source, and if called with a value, that value will be passed to the fetcher via the `refetching` property on the fetcher's second parameter
+ *
+ * @description https://docs.solidjs.com/reference/basic-reactivity/create-resource
+ */
+
 function createResource(pSource, pFetcher, pOptions) {
   let source;
   let fetcher;
@@ -400,6 +632,19 @@ function createResource(pSource, pFetcher, pOptions) {
     mutate: setValue
   }];
 }
+/**
+ * Creates a reactive computation that only runs and notifies the reactive context when the browser is idle
+ * ```typescript
+ * export function createDeferred<T>(
+ *   fn: (v: T) => T,
+ *   options?: { timeoutMs?: number, name?: string, equals?: false | ((prev: T, next: T) => boolean) }
+ * ): () => T);
+ * ```
+ * @param fn a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param options allows to set the timeout in milliseconds, use a custom comparison function and set a name in dev mode for debugging purposes
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-deferred
+ */
 function createDeferred(source, options) {
   let t,
     timeout = options ? options.timeoutMs : undefined;
@@ -414,6 +659,30 @@ function createDeferred(source, options) {
   setDeferred(() => Transition && Transition.running && Transition.sources.has(node) ? node.tValue : node.value);
   return deferred;
 }
+/**
+ * Creates a conditional signal that only notifies subscribers when entering or exiting their key matching the value
+ * ```typescript
+ * export function createSelector<T, U>(
+ *   source: () => T
+ *   fn: (a: U, b: T) => boolean,
+ *   options?: { name?: string }
+ * ): (k: U) => boolean;
+ * ```
+ * @param source
+ * @param fn a function that receives its previous or the initial value, if set, and returns a new value used to react on a computation
+ * @param options allows to set a name in dev mode for debugging purposes, optional
+ *
+ * ```typescript
+ * const isSelected = createSelector(selectedId);
+ * <For each={list()}>
+ *   {(item) => <li classList={{ active: isSelected(item.id) }}>{item.name}</li>}
+ * </For>
+ * ```
+ *
+ * This makes the operation O(2) instead of O(n).
+ *
+ * @description https://docs.solidjs.com/reference/secondary-primitives/create-selector
+ */
 function createSelector(source, fn = equalFn, options) {
   const subs = new Map();
   const node = createComputation(p => {
@@ -425,7 +694,7 @@ function createSelector(source, fn = equalFn, options) {
       }
     }
     return v;
-  }, undefined, true, STALE);
+  }, undefined, true, STALE, options );
   updateComputation(node);
   return key => {
     const listener = Listener;
@@ -440,9 +709,25 @@ function createSelector(source, fn = equalFn, options) {
     return fn(key, Transition && Transition.running && Transition.sources.has(node) ? node.tValue : node.value);
   };
 }
+
+/**
+ * Holds changes inside the block before the reactive context is updated
+ * @param fn wraps the reactive updates that should be batched
+ * @returns the return value from `fn`
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/batch
+ */
 function batch(fn) {
   return runUpdates(fn, false);
 }
+
+/**
+ * Ignores tracking context inside its scope
+ * @param fn the scope that is out of the tracking context
+ * @returns the return value of `fn`
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/untrack
+ */
 function untrack(fn) {
   if (!ExternalSourceConfig && Listener === null) return fn();
   const listener = Listener;
@@ -454,6 +739,40 @@ function untrack(fn) {
     Listener = listener;
   }
 }
+
+/** @deprecated */
+
+// transforms a tuple to a tuple of accessors in a way that allows generics to be inferred
+
+// Also similar to EffectFunction
+
+/**
+ * Makes dependencies of a computation explicit
+ * ```typescript
+ * export function on<S, U>(
+ *   deps: Accessor<S> | AccessorArray<S>,
+ *   fn: (input: S, prevInput: S | undefined, prevValue: U | undefined) => U,
+ *   options?: { defer?: boolean } = {}
+ * ): (prevValue: U | undefined) => U;
+ * ```
+ * @param deps list of reactive dependencies or a single reactive dependency
+ * @param fn computation on input; the current previous content(s) of input and the previous value are given as arguments and it returns a new value
+ * @param options optional, allows deferred computation until at the end of the next change
+ * @returns an effect function that is passed into createEffect. For example:
+ *
+ * ```typescript
+ * createEffect(on(a, (v) => console.log(v, b())));
+ *
+ * // is equivalent to:
+ * createEffect(() => {
+ *   const v = a();
+ *   untrack(() => console.log(v, b()));
+ * });
+ * ```
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/on-util
+ */
+
 function on(deps, fn, options) {
   const isArray = Array.isArray(deps);
   let prevInput;
@@ -473,13 +792,39 @@ function on(deps, fn, options) {
     return result;
   };
 }
+
+/**
+ * Runs an effect only after initial render on mount
+ * @param fn an effect that should run only once on mount
+ *
+ * @description https://docs.solidjs.com/reference/lifecycle/on-mount
+ */
 function onMount(fn) {
   createEffect(() => untrack(fn));
 }
+
+/**
+ * Runs an effect once before the reactive scope is disposed
+ * @param fn an effect that should run only once on cleanup
+ *
+ * @returns the same {@link fn} function that was passed in
+ *
+ * @description https://docs.solidjs.com/reference/lifecycle/on-cleanup
+ */
 function onCleanup(fn) {
-  if (Owner === null) ;else if (Owner.cleanups === null) Owner.cleanups = [fn];else Owner.cleanups.push(fn);
+  if (Owner === null) console.warn("cleanups created outside a `createRoot` or `render` will never be run");else if (Owner.cleanups === null) Owner.cleanups = [fn];else Owner.cleanups.push(fn);
   return fn;
 }
+
+/**
+ * Runs an effect whenever an error is thrown within the context of the child scopes
+ * @param fn boundary for the error
+ * @param handler an error handler that receives the error
+ *
+ * * If the error is thrown again inside the error handler, it will trigger the next available parent handler
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/catch-error
+ */
 function catchError(fn, handler) {
   ERROR || (ERROR = Symbol("error"));
   Owner = createComputation(undefined, undefined, true);
@@ -516,9 +861,19 @@ function runWithOwner(o, fn) {
     Listener = prevListener;
   }
 }
+
+// Transitions
 function enableScheduling(scheduler = requestCallback) {
   Scheduler = scheduler;
 }
+
+/**
+ * ```typescript
+ * export function startTransition(fn: () => void) => Promise<void>
+ * ```
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/start-transition
+ */
 function startTransition(fn) {
   if (Transition && Transition.running) {
     fn();
@@ -547,7 +902,20 @@ function startTransition(fn) {
     return t ? t.done : undefined;
   });
 }
+
+// keep immediately evaluated module code, below its dependencies like Listener & createSignal
 const [transPending, setTransPending] = /*@__PURE__*/createSignal(false);
+/**
+ * ```typescript
+ * export function useTransition(): [
+ *   () => boolean,
+ *   (fn: () => void, cb?: () => void) => void
+ * ];
+ * ```
+ * @returns a tuple; first value is an accessor if the transition is pending and a callback to start the transition
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/use-transition
+ */
 function useTransition() {
   return [transPending, startTransition];
 }
@@ -555,31 +923,101 @@ function resumeEffects(e) {
   Effects.push.apply(Effects, e);
   e.length = 0;
 }
+// Dev
+function devComponent(Comp, props) {
+  const c = createComputation(() => untrack(() => {
+    Object.assign(Comp, {
+      [$DEVCOMP]: true
+    });
+    return Comp(props);
+  }), undefined, true, 0);
+  c.props = props;
+  c.observers = null;
+  c.observerSlots = null;
+  c.name = Comp.name;
+  c.component = Comp;
+  updateComputation(c);
+  return c.tValue !== undefined ? c.tValue : c.value;
+}
+function registerGraph(value) {
+  if (Owner) {
+    if (Owner.sourceMap) Owner.sourceMap.push(value);else Owner.sourceMap = [value];
+    value.graph = Owner;
+  }
+  if (DevHooks.afterRegisterGraph) DevHooks.afterRegisterGraph(value);
+}
+
+// Context API
+
+/**
+ * Creates a Context to handle a state scoped for the children of a component
+ * ```typescript
+ * interface Context<T> {
+ *   id: symbol;
+ *   Provider: FlowComponent<{ value: T }>;
+ *   defaultValue: T;
+ * }
+ * export function createContext<T>(
+ *   defaultValue?: T,
+ *   options?: { name?: string }
+ * ): Context<T | undefined>;
+ * ```
+ * @param defaultValue optional default to inject into context
+ * @param options allows to set a name in dev mode for debugging purposes
+ * @returns The context that contains the Provider Component and that can be used with `useContext`
+ *
+ * @description https://docs.solidjs.com/reference/component-apis/create-context
+ */
+
 function createContext(defaultValue, options) {
   const id = Symbol("context");
   return {
     id,
-    Provider: createProvider(id),
+    Provider: createProvider(id, options),
     defaultValue
   };
 }
+
+/**
+ * Uses a context to receive a scoped state from a parent's Context.Provider
+ *
+ * @param context Context object made by `createContext`
+ * @returns the current or `defaultValue`, if present
+ *
+ * @description https://docs.solidjs.com/reference/component-apis/use-context
+ */
 function useContext(context) {
   let value;
   return Owner && Owner.context && (value = Owner.context[context.id]) !== undefined ? value : context.defaultValue;
 }
+/**
+ * Resolves child elements to help interact with children
+ *
+ * @param fn an accessor for the children
+ * @returns a accessor of the same children, but resolved
+ *
+ * @description https://docs.solidjs.com/reference/component-apis/children
+ */
 function children(fn) {
   const children = createMemo(fn);
-  const memo = createMemo(() => resolveChildren(children()));
+  const memo = createMemo(() => resolveChildren(children()), undefined, {
+    name: "children"
+  }) ;
   memo.toArray = () => {
     const c = memo();
     return Array.isArray(c) ? c : c != null ? [c] : [];
   };
   return memo;
 }
+
+// Resource API
+
 let SuspenseContext;
 function getSuspenseContext() {
   return SuspenseContext || (SuspenseContext = createContext());
 }
+
+// Interop
 function enableExternalSource(factory, untrack = fn => fn()) {
   if (ExternalSourceConfig) {
     const {
@@ -607,6 +1045,8 @@ function enableExternalSource(factory, untrack = fn => fn()) {
     };
   }
 }
+
+// Internal
 function readSignal() {
   const runningTransition = Transition && Transition.running;
   if (this.sources && (runningTransition ? this.tState : this.state)) {
@@ -662,7 +1102,7 @@ function writeSignal(node, value, isComp) {
         }
         if (Updates.length > 10e5) {
           Updates = [];
-          if (IS_DEV) ;
+          if (IS_DEV) throw new Error("Potential Infinite Loop Detected.");
           throw new Error();
         }
       }, false);
@@ -705,6 +1145,7 @@ function runComputation(node, value, time) {
         node.owned = null;
       }
     }
+    // won't be picked up until next update
     node.updatedAt = time + 1;
     return handleError(err);
   } finally {
@@ -715,6 +1156,8 @@ function runComputation(node, value, time) {
     if (node.updatedAt != null && "observers" in node) {
       writeSignal(node, nextValue, true);
     } else if (Transition && Transition.running && node.pure) {
+      // On first computation during transition, also set committed value #2046
+      if (!Transition.sources.has(node)) node.value = nextValue;
       Transition.sources.add(node);
       node.tValue = nextValue;
     } else node.value = nextValue;
@@ -739,26 +1182,38 @@ function createComputation(fn, init, pure, state = STALE, options) {
     c.state = 0;
     c.tState = state;
   }
-  if (Owner === null) ;else if (Owner !== UNOWNED) {
+  if (Owner === null) console.warn("computations created outside a `createRoot` or `render` will never be disposed");else if (Owner !== UNOWNED) {
     if (Transition && Transition.running && Owner.pure) {
       if (!Owner.tOwned) Owner.tOwned = [c];else Owner.tOwned.push(c);
     } else {
       if (!Owner.owned) Owner.owned = [c];else Owner.owned.push(c);
     }
   }
+  if (options && options.name) c.name = options.name;
   if (ExternalSourceConfig && c.fn) {
+    const sourceFn = c.fn;
     const [track, trigger] = createSignal(undefined, {
       equals: false
     });
-    const ordinary = ExternalSourceConfig.factory(c.fn, trigger);
+    const ordinary = ExternalSourceConfig.factory(sourceFn, trigger);
     onCleanup(() => ordinary.dispose());
-    const triggerInTransition = () => startTransition(trigger).then(() => inTransition.dispose());
-    const inTransition = ExternalSourceConfig.factory(c.fn, triggerInTransition);
+    let inTransition;
+    const triggerInTransition = () => startTransition(trigger).then(() => {
+      if (inTransition) {
+        inTransition.dispose();
+        inTransition = undefined;
+      }
+    });
     c.fn = x => {
       track();
-      return Transition && Transition.running ? inTransition.track(x) : ordinary.track(x);
+      if (Transition && Transition.running) {
+        if (!inTransition) inTransition = ExternalSourceConfig.factory(sourceFn, triggerInTransition);
+        return inTransition.track(x);
+      }
+      return ordinary.track(x);
     };
   }
+  DevHooks.afterCreateOwner && DevHooks.afterCreateOwner(c);
   return c;
 }
 function runTop(node) {
@@ -815,6 +1270,7 @@ function completeUpdates(wait) {
   let res;
   if (Transition) {
     if (!Transition.promises.size && !Transition.queue.size) {
+      // finish transition
       const sources = Transition.sources;
       const disposed = Transition.disposed;
       Effects.push.apply(Effects, Transition.effects);
@@ -848,7 +1304,7 @@ function completeUpdates(wait) {
   }
   const e = Effects;
   Effects = null;
-  if (e.length) runUpdates(() => runEffects(e), false);
+  if (e.length) runUpdates(() => runEffects(e), false);else DevHooks.afterUpdate && DevHooks.afterUpdate();
   if (res) res();
 }
 function runQueue(queue) {
@@ -950,6 +1406,7 @@ function cleanNode(node) {
     node.cleanups = null;
   }
   if (Transition && Transition.running) node.tState = 0;else node.state = 0;
+  delete node.sourceMap;
 }
 function reset(node, top) {
   if (!top) {
@@ -1005,13 +1462,23 @@ function createProvider(id, options) {
         [id]: props.value
       };
       return children(() => props.children);
-    }), undefined);
+    }), undefined, options);
     return res;
   };
 }
+/**
+ * @deprecated since version 1.7.0 and will be removed in next major - use catchError instead
+ * onError - run an effect whenever an error is thrown within the context of the child scopes
+ * @param fn an error handler that receives the error
+ *
+ * * If the error is thrown again inside the error handler, it will trigger the next available parent handler
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/catch-error
+ */
 function onError(fn) {
   ERROR || (ERROR = Symbol("error"));
-  if (Owner === null) ;else if (Owner.context === null || !Owner.context[ERROR]) {
+  if (Owner === null) console.warn("error handlers created outside a `createRoot` or `render` will never be run");else if (Owner.context === null || !Owner.context[ERROR]) {
+    // terrible de-opt
     Owner.context = {
       ...Owner.context,
       [ERROR]: [fn]
@@ -1034,6 +1501,21 @@ function mutateContext(o, key, value) {
   }
 }
 
+// Note: This will add Symbol.observable globally for all TypeScript users,
+// however, we are not polyfilling Symbol.observable. Ensuring the type for
+// this global symbol is present is necessary for `observable()` to be
+// properly typed for 3rd party library's like RXJS.
+
+/**
+ * Creates a simple observable from a signal's accessor to be used with the `from` operator of observable libraries like e.g. rxjs
+ * ```typescript
+ * import { from } from "rxjs";
+ * const [s, set] = createSignal(0);
+ * const obsv$ = from(observable(s));
+ * obsv$.subscribe((v) => console.log(v));
+ * ```
+ * description https://docs.solidjs.com/reference/reactive-utilities/observable
+ */
 function observable(input) {
   return {
     subscribe(observer) {
@@ -1060,6 +1542,10 @@ function observable(input) {
         }
       };
     },
+    // Here we're intentionally using `Symbol.observable || "@@observable"` directly
+    // without assigning it to an intermediary variable (e.g. we aren't doing
+    // `const $$observable = Symbol.observable || "@@observable"`).
+    // See for more info: https://github.com/solidjs/solid/pull/1118
     [Symbol.observable || "@@observable"]() {
       return this;
     }
@@ -1083,6 +1569,39 @@ const FALLBACK = Symbol("fallback");
 function dispose(d) {
   for (let i = 0; i < d.length; i++) d[i]();
 }
+
+// Modified version of mapSample from S-array[https://github.com/adamhaile/S-array] by Adam Haile
+/**
+The MIT License (MIT)
+
+Copyright (c) 2017 Adam Haile
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+/**
+ * Reactively transforms an array with a callback function - underlying helper for the `<For>` control flow
+ *
+ * similar to `Array.prototype.map`, but gets the index as accessor, transforms only values that changed and returns an accessor and reactively tracks changes to the list.
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/map-array
+ */
 function mapArray(list, mapFn, options = {}) {
   let items = [],
     mapped = [],
@@ -1095,9 +1614,11 @@ function mapArray(list, mapFn, options = {}) {
       newLen = newItems.length,
       i,
       j;
-    newItems[$TRACK];
+    newItems[$TRACK]; // top level tracking
     return untrack(() => {
       let newIndices, newIndicesNext, temp, tempdisposers, tempIndexes, start, end, newEnd, item;
+
+      // fast path for empty arrays
       if (newLen === 0) {
         if (len !== 0) {
           dispose(disposers);
@@ -1116,6 +1637,7 @@ function mapArray(list, mapFn, options = {}) {
           len = 1;
         }
       }
+      // fast path for new create
       else if (len === 0) {
         mapped = new Array(newLen);
         for (j = 0; j < newLen; j++) {
@@ -1127,12 +1649,18 @@ function mapArray(list, mapFn, options = {}) {
         temp = new Array(newLen);
         tempdisposers = new Array(newLen);
         indexes && (tempIndexes = new Array(newLen));
+
+        // skip common prefix
         for (start = 0, end = Math.min(len, newLen); start < end && items[start] === newItems[start]; start++);
+
+        // common suffix
         for (end = len - 1, newEnd = newLen - 1; end >= start && newEnd >= start && items[end] === newItems[newEnd]; end--, newEnd--) {
           temp[newEnd] = mapped[end];
           tempdisposers[newEnd] = disposers[end];
           indexes && (tempIndexes[newEnd] = indexes[end]);
         }
+
+        // 0) prepare a map of all indices in newItems, scanning backwards so we encounter them in natural order
         newIndices = new Map();
         newIndicesNext = new Array(newEnd + 1);
         for (j = newEnd; j >= start; j--) {
@@ -1141,6 +1669,7 @@ function mapArray(list, mapFn, options = {}) {
           newIndicesNext[j] = i === undefined ? -1 : i;
           newIndices.set(item, j);
         }
+        // 1) step through all old items and see if they can be found in the new set; if so, save them in a temp array and mark them moved; if not, exit them
         for (i = start; i <= end; i++) {
           item = items[i];
           j = newIndices.get(item);
@@ -1152,6 +1681,7 @@ function mapArray(list, mapFn, options = {}) {
             newIndices.set(item, j);
           } else disposers[i]();
         }
+        // 2) set all the new values, pulling from the temp array if copied, otherwise entering the new value
         for (j = start; j < newLen; j++) {
           if (j in temp) {
             mapped[j] = temp[j];
@@ -1162,7 +1692,9 @@ function mapArray(list, mapFn, options = {}) {
             }
           } else mapped[j] = createRoot(mapper);
         }
+        // 3) in case the new set is shorter than the old, set the length of the mapped array
         mapped = mapped.slice(0, len = newLen);
+        // 4) save a copy of the mapped items for the next update
         items = newItems.slice(0);
       }
       return mapped;
@@ -1170,7 +1702,9 @@ function mapArray(list, mapFn, options = {}) {
     function mapper(disposer) {
       disposers[j] = disposer;
       if (indexes) {
-        const [s, set] = createSignal(j);
+        const [s, set] = createSignal(j, {
+          name: "index"
+        }) ;
         indexes[j] = set;
         return mapFn(newItems[j], s);
       }
@@ -1178,6 +1712,14 @@ function mapArray(list, mapFn, options = {}) {
     }
   };
 }
+
+/**
+ * Reactively maps arrays by index instead of value - underlying helper for the `<Index>` control flow
+ *
+ * similar to `Array.prototype.map`, but gets the value as an accessor, transforms only changed items of the original arrays anew and returns an accessor.
+ *
+ * @description https://docs.solidjs.com/reference/reactive-utilities/index-array
+ */
 function indexArray(list, mapFn, options = {}) {
   let items = [],
     mapped = [],
@@ -1189,7 +1731,7 @@ function indexArray(list, mapFn, options = {}) {
   return () => {
     const newItems = list() || [],
       newLen = newItems.length;
-    newItems[$TRACK];
+    newItems[$TRACK]; // top level tracking
     return untrack(() => {
       if (newLen === 0) {
         if (len !== 0) {
@@ -1233,7 +1775,9 @@ function indexArray(list, mapFn, options = {}) {
     });
     function mapper(disposer) {
       disposers[i] = disposer;
-      const [s, set] = createSignal(newItems[i]);
+      const [s, set] = createSignal(newItems[i], {
+        name: "value"
+      }) ;
       signals[i] = set;
       return mapFn(s, i);
     }
@@ -1244,17 +1788,77 @@ let hydrationEnabled = false;
 function enableHydration() {
   hydrationEnabled = true;
 }
+
+/**
+ * A general `Component` has no implicit `children` prop.  If desired, you can
+ * specify one as in `Component<{name: String, children: JSX.Element}>`.
+ */
+
+/**
+ * Extend props to forbid the `children` prop.
+ * Use this to prevent accidentally passing `children` to components that
+ * would silently throw them away.
+ */
+
+/**
+ * `VoidComponent` forbids the `children` prop.
+ * Use this to prevent accidentally passing `children` to components that
+ * would silently throw them away.
+ */
+
+/**
+ * Extend props to allow an optional `children` prop with the usual
+ * type in JSX, `JSX.Element` (which allows elements, arrays, strings, etc.).
+ * Use this for components that you want to accept children.
+ */
+
+/**
+ * `ParentComponent` allows an optional `children` prop with the usual
+ * type in JSX, `JSX.Element` (which allows elements, arrays, strings, etc.).
+ * Use this for components that you want to accept children.
+ */
+
+/**
+ * Extend props to require a `children` prop with the specified type.
+ * Use this for components where you need a specific child type,
+ * typically a function that receives specific argument types.
+ * Note that all JSX <Elements> are of the type `JSX.Element`.
+ */
+
+/**
+ * `FlowComponent` requires a `children` prop with the specified type.
+ * Use this for components where you need a specific child type,
+ * typically a function that receives specific argument types.
+ * Note that all JSX <Elements> are of the type `JSX.Element`.
+ */
+
+/** @deprecated: use `ParentProps` instead */
+
+/**
+ * Takes the props of the passed component and returns its type
+ *
+ * @example
+ * ComponentProps<typeof Portal> // { mount?: Node; useShadow?: boolean; children: JSX.Element }
+ * ComponentProps<'div'> // JSX.HTMLAttributes<HTMLDivElement>
+ */
+
+/**
+ * Type of `props.ref`, for use in `Component` or `props` typing.
+ *
+ * @example Component<{ref: Ref<Element>}>
+ */
+
 function createComponent(Comp, props) {
   if (hydrationEnabled) {
     if (sharedConfig.context) {
       const c = sharedConfig.context;
       setHydrateContext(nextHydrateContext());
-      const r = untrack(() => Comp(props || {}));
+      const r = devComponent(Comp, props || {}) ;
       setHydrateContext(c);
       return r;
     }
   }
-  return untrack(() => Comp(props || {}));
+  return devComponent(Comp, props || {});
 }
 function trueFn() {
   return true;
@@ -1295,6 +1899,8 @@ function resolveSources() {
   }
 }
 function mergeProps(...sources) {
+  // [breaking && performance]
+  //if (sources.length === 1) return sources[0] as any;
   let proxy = false;
   for (let i = 0; i < sources.length; i++) {
     const s = sources[i];
@@ -1324,10 +1930,13 @@ function mergeProps(...sources) {
   }
   const sourcesMap = {};
   const defined = Object.create(null);
+  //let someNonTargetKey = false;
+
   for (let i = sources.length - 1; i >= 0; i--) {
     const source = sources[i];
     if (!source) continue;
     const sourceKeys = Object.getOwnPropertyNames(source);
+    //someNonTargetKey = someNonTargetKey || (i !== 0 && !!sourceKeys.length);
     for (let i = sourceKeys.length - 1; i >= 0; i--) {
       const key = sourceKeys[i];
       if (key === "__proto__" || key === "constructor") continue;
@@ -1353,11 +1962,14 @@ function mergeProps(...sources) {
       desc = defined[key];
     if (desc && desc.get) Object.defineProperty(target, key, desc);else target[key] = desc ? desc.value : undefined;
   }
+  // [breaking && performance]
+  //return (someNonTargetKey ? target : sources[0]) as any;
   return target;
 }
 function splitProps(props, ...keys) {
+  const len = keys.length;
   if (SUPPORTS_PROXY && $PROXY in props) {
-    const blocked = new Set(keys.length > 1 ? keys.flat() : keys[0]);
+    const blocked = len > 1 ? keys.flat() : keys[0];
     const res = keys.map(k => {
       return new Proxy({
         get(property) {
@@ -1373,37 +1985,37 @@ function splitProps(props, ...keys) {
     });
     res.push(new Proxy({
       get(property) {
-        return blocked.has(property) ? undefined : props[property];
+        return blocked.includes(property) ? undefined : props[property];
       },
       has(property) {
-        return blocked.has(property) ? false : property in props;
+        return blocked.includes(property) ? false : property in props;
       },
       keys() {
-        return Object.keys(props).filter(k => !blocked.has(k));
+        return Object.keys(props).filter(k => !blocked.includes(k));
       }
     }, propTraps));
     return res;
   }
-  const otherObject = {};
-  const objects = keys.map(() => ({}));
+  const objects = [];
+  for (let i = 0; i <= len; i++) {
+    objects[i] = {};
+  }
   for (const propName of Object.getOwnPropertyNames(props)) {
+    let keyIndex = len;
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i].includes(propName)) {
+        keyIndex = i;
+        break;
+      }
+    }
     const desc = Object.getOwnPropertyDescriptor(props, propName);
     const isDefaultDesc = !desc.get && !desc.set && desc.enumerable && desc.writable && desc.configurable;
-    let blocked = false;
-    let objectIndex = 0;
-    for (const k of keys) {
-      if (k.includes(propName)) {
-        blocked = true;
-        isDefaultDesc ? objects[objectIndex][propName] = desc.value : Object.defineProperty(objects[objectIndex], propName, desc);
-      }
-      ++objectIndex;
-    }
-    if (!blocked) {
-      isDefaultDesc ? otherObject[propName] = desc.value : Object.defineProperty(otherObject, propName, desc);
-    }
+    isDefaultDesc ? objects[keyIndex][propName] = desc.value : Object.defineProperty(objects[keyIndex], propName, desc);
   }
-  return [...objects, otherObject];
+  return objects;
 }
+
+// lazy load a function component asynchronously
 function lazy(fn) {
   let comp;
   let p;
@@ -1426,7 +2038,9 @@ function lazy(fn) {
     }
     let Comp;
     return createMemo(() => (Comp = comp()) ? untrack(() => {
-      if (IS_DEV) ;
+      if (IS_DEV) Object.assign(Comp, {
+        [$DEVCOMP]: true
+      });
       if (!ctx || sharedConfig.done) return Comp(props);
       const c = sharedConfig.context;
       setHydrateContext(ctx);
@@ -1444,25 +2058,66 @@ function createUniqueId() {
   return ctx ? sharedConfig.getNextContextId() : `cl-${counter++}`;
 }
 
-const narrowedError = name => `Stale read from <${name}>.`;
+const narrowedError = name => `Attempting to access a stale value from <${name}> that could possibly be undefined. This may occur because you are reading the accessor returned from the component at a time where it has already been unmounted. We recommend cleaning up any stale timers or async, or reading from the initial condition.` ;
+
+/**
+ * Creates a list elements from a list
+ *
+ * it receives a map function as its child that receives a list element and an accessor with the index and returns a JSX-Element; if the list is empty, an optional fallback is returned:
+ * ```typescript
+ * <For each={items} fallback={<div>No items</div>}>
+ *   {(item, index) => <div data-index={index()}>{item}</div>}
+ * </For>
+ * ```
+ * If you have a list with fixed indices and changing values, consider using `<Index>` instead.
+ *
+ * @description https://docs.solidjs.com/reference/components/for
+ */
 function For(props) {
   const fallback = "fallback" in props && {
     fallback: () => props.fallback
   };
-  return createMemo(mapArray(() => props.each, props.children, fallback || undefined));
+  return createMemo(mapArray(() => props.each, props.children, fallback || undefined), undefined, {
+    name: "value"
+  }) ;
 }
+
+/**
+ * Non-keyed iteration over a list creating elements from its items
+ *
+ * To be used if you have a list with fixed indices, but changing values.
+ * ```typescript
+ * <Index each={items} fallback={<div>No items</div>}>
+ *   {(item, index) => <div data-index={index}>{item()}</div>}
+ * </Index>
+ * ```
+ * If you have a list with changing indices, better use `<For>`.
+ *
+ * @description https://docs.solidjs.com/reference/components/index-component
+ */
 function Index(props) {
   const fallback = "fallback" in props && {
     fallback: () => props.fallback
   };
-  return createMemo(indexArray(() => props.each, props.children, fallback || undefined));
+  return createMemo(indexArray(() => props.each, props.children, fallback || undefined), undefined, {
+    name: "value"
+  }) ;
 }
+
+/**
+ * Conditionally render its children or an optional fallback component
+ * @description https://docs.solidjs.com/reference/components/show
+ */
+
 function Show(props) {
   const keyed = props.keyed;
-  const conditionValue = createMemo(() => props.when, undefined, undefined);
+  const conditionValue = createMemo(() => props.when, undefined, {
+    name: "condition value"
+  } );
   const condition = keyed ? conditionValue : createMemo(conditionValue, undefined, {
-    equals: (a, b) => !a === !b
-  });
+    equals: (a, b) => !a === !b,
+    name: "condition"
+  } );
   return createMemo(() => {
     const c = condition();
     if (c) {
@@ -1474,8 +2129,24 @@ function Show(props) {
       })) : child;
     }
     return props.fallback;
-  }, undefined, undefined);
+  }, undefined, {
+    name: "value"
+  } );
 }
+/**
+ * Switches between content based on mutually exclusive conditions
+ * ```typescript
+ * <Switch fallback={<FourOhFour />}>
+ *   <Match when={state.route === 'home'}>
+ *     <Home />
+ *   </Match>
+ *   <Match when={state.route === 'settings'}>
+ *     <Settings />
+ *   </Match>
+ * </Switch>
+ * ```
+ * @description https://docs.solidjs.com/reference/components/switch-and-match
+ */
 function Switch(props) {
   const chs = children(() => props.children);
   const switchFunc = createMemo(() => {
@@ -1486,10 +2157,13 @@ function Switch(props) {
       const index = i;
       const mp = mps[i];
       const prevFunc = func;
-      const conditionValue = createMemo(() => prevFunc() ? undefined : mp.when, undefined, undefined);
+      const conditionValue = createMemo(() => prevFunc() ? undefined : mp.when, undefined, {
+        name: "condition value"
+      } );
       const condition = mp.keyed ? conditionValue : createMemo(conditionValue, undefined, {
-        equals: (a, b) => !a === !b
-      });
+        equals: (a, b) => !a === !b,
+        name: "condition"
+      } );
       func = () => prevFunc() || (condition() ? [index, conditionValue, mp] : undefined);
     }
     return func;
@@ -1504,8 +2178,21 @@ function Switch(props) {
       if (untrack(switchFunc)()?.[0] !== index) throw narrowedError("Match");
       return conditionValue();
     })) : child;
-  }, undefined, undefined);
+  }, undefined, {
+    name: "eval conditions"
+  } );
 }
+
+/**
+ * Selects a content based on condition when inside a `<Switch>` control flow
+ * ```typescript
+ * <Match when={condition()}>
+ *   <Content/>
+ * </Match>
+ * ```
+ * @description https://docs.solidjs.com/reference/components/switch-and-match
+ */
+
 function Match(props) {
   return props;
 }
@@ -1513,10 +2200,27 @@ let Errors;
 function resetErrorBoundaries() {
   Errors && [...Errors].forEach(fn => fn());
 }
+/**
+ * Catches uncaught errors inside components and renders a fallback content
+ *
+ * Also supports a callback form that passes the error and a reset function:
+ * ```typescript
+ * <ErrorBoundary fallback={
+ *   (err, reset) => <div onClick={reset}>Error: {err.toString()}</div>
+ * }>
+ *   <MyComp />
+ * </ErrorBoundary>
+ * ```
+ * Errors thrown from the fallback can be caught by a parent ErrorBoundary
+ *
+ * @description https://docs.solidjs.com/reference/components/error-boundary
+ */
 function ErrorBoundary(props) {
   let err;
   if (sharedConfig.context && sharedConfig.load) err = sharedConfig.load(sharedConfig.getContextId());
-  const [errored, setErrored] = createSignal(err, undefined);
+  const [errored, setErrored] = createSignal(err, {
+    name: "errored"
+  } );
   Errors || (Errors = new Set());
   Errors.add(setErrored);
   onCleanup(() => Errors.delete(setErrored));
@@ -1524,19 +2228,30 @@ function ErrorBoundary(props) {
     let e;
     if (e = errored()) {
       const f = props.fallback;
+      if ((typeof f !== "function" || f.length == 0)) console.error(e);
       return typeof f === "function" && f.length ? untrack(() => f(e, () => setErrored())) : f;
     }
     return catchError(() => props.children, setErrored);
-  }, undefined, undefined);
+  }, undefined, {
+    name: "value"
+  } );
 }
 
 const suspenseListEquals = (a, b) => a.showContent === b.showContent && a.showFallback === b.showFallback;
 const SuspenseListContext = /* #__PURE__ */createContext();
+
+/**
+ * **[experimental]** Controls the order in which suspended content is rendered
+ *
+ * @description https://docs.solidjs.com/reference/components/suspense-list
+ */
 function SuspenseList(props) {
   let [wrapper, setWrapper] = createSignal(() => ({
       inFallback: false
     })),
     show;
+
+  // Nested SuspenseList support
   const listContext = useContext(SuspenseListContext);
   const [registry, setRegistry] = createSignal([]);
   if (listContext) {
@@ -1606,6 +2321,18 @@ function SuspenseList(props) {
     }
   });
 }
+
+/**
+ * Tracks all resources inside a component and renders a fallback until they are all resolved
+ * ```typescript
+ * const AsyncComponent = lazy(() => import('./component'));
+ *
+ * <Suspense fallback={<LoadingIndicator />}>
+ *   <AsyncComponent />
+ * </Suspense>
+ * ```
+ * @description https://docs.solidjs.com/reference/components/suspense
+ */
 function Suspense(props) {
   let counter = 0,
     show,
@@ -1650,6 +2377,8 @@ function Suspense(props) {
       });
     }
   }
+
+  // SuspenseList support
   const listContext = useContext(SuspenseListContext);
   if (listContext) show = listContext.register(store.inFallback);
   let dispose;
@@ -1698,6 +2427,16 @@ function Suspense(props) {
   });
 }
 
-const DEV = undefined;
+const DEV = {
+  hooks: DevHooks,
+  writeSignal,
+  registerGraph
+} ;
+
+// handle multiple instance check
+
+if (globalThis) {
+  if (!globalThis.Solid$$) globalThis.Solid$$ = true;else console.warn("You appear to have multiple instances of Solid. This can lead to unexpected behavior.");
+}
 
 export { $DEVCOMP, $PROXY, $TRACK, DEV, ErrorBoundary, For, Index, Match, Show, Suspense, SuspenseList, Switch, batch, cancelCallback, catchError, children, createComponent, createComputed, createContext, createDeferred, createEffect, createMemo, createReaction, createRenderEffect, createResource, createRoot, createSelector, createSignal, createUniqueId, enableExternalSource, enableHydration, enableScheduling, equalFn, from, getListener, getOwner, indexArray, lazy, mapArray, mergeProps, observable, on, onCleanup, onError, onMount, requestCallback, resetErrorBoundaries, runWithOwner, sharedConfig, splitProps, startTransition, untrack, useContext, useTransition };

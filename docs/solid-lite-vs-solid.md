@@ -49,6 +49,53 @@ const [count, setCount] = createSignal(0);
 `Accessor<T>` type for compile-time guarantees. Event handlers (`onClick`,
 `onInput`, etc.) bypass this rule because they are dispatched by name.
 
+### Cases where solid-lite requires an extra thunk
+
+**SolidJS (with compiler)** can make any expression inside `{...}` reactive:
+
+```tsx
+<div>{count() * 2}</div>
+<div>{count() > 5 ? "big" : "small"}</div>
+<div>{`Total: ${count()}`}</div>
+<p>{a() + b()}</p>
+```
+
+**solid-lite** requires an explicit arrow function:
+
+```tsx
+<div>{() => count() * 2}</div>
+<div>{() => count() > 5 ? "big" : "small"}</div>
+<div>{() => `Total: ${count()}`}</div>
+<p>{() => a() + b()}</p>
+```
+
+Functionally equivalent. Cost: **3 extra characters** (`() =>`) per derived
+expression. Reactivity is identical.
+
+> **Idiomatic alternative:** use `createMemo` for frequently derived values,
+> exactly as in SolidJS — usage becomes `{doubled}` (no `()`).
+
+### The `derived` helper (solid-lite extension)
+
+solid-lite ships an optional `derived` helper that brands an inline thunk as
+an `Accessor<T>`. It is a zero-cost wrapper — equivalent in runtime behavior
+to a plain `() => ...` thunk — but more self-documenting and friendlier to
+type inference:
+
+```tsx
+import { derived } from "@solid/index.ts";
+
+<div>{derived(() => count() * 2)}</div>
+<Show when={derived(() => count() > 5)}>...</Show>
+```
+
+Use `derived` for **cheap, one-off** inline expressions and `createMemo` for
+**cached, reused** derivations.
+
+> ⚠️ `derived` does **not** exist in SolidJS. It is a solid-lite extension to
+> make the explicit-thunk pattern more ergonomic. Code that needs to remain
+> portable to SolidJS should stick with `createMemo` or plain `() => ...`.
+
 ---
 
 ## 2. The `when` prop in `<Show>`

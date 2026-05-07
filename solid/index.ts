@@ -86,6 +86,30 @@ export const createMemo = (<T>(fn: () => T): Accessor<T> => {
 }) as <T>(fn: () => T) => Accessor<T>;
 
 /**
+ * Marks an inline thunk as a reactive expression for the runtime.
+ *
+ * `derived(() => ...)` is a zero-cost wrapper that brands the thunk as an
+ * `Accessor<T>` so it is treated as reactive in JSX without requiring the
+ * memoization overhead of `createMemo`. Use it for cheap, one-off derived
+ * expressions inline in JSX:
+ *
+ * ```tsx
+ * <div>{derived(() => count() * 2)}</div>
+ * <Show when={derived(() => count() > 5)}>...</Show>
+ * ```
+ *
+ * Equivalent in behavior to passing a plain `() => ...` thunk; the only
+ * difference is the SIGNAL brand, which improves type inference and signals
+ * intent. For values used in many places, prefer `createMemo` for caching.
+ *
+ * Note: `derived` is a solid-lite extension and does NOT exist in SolidJS.
+ *
+ * @param fn The thunk that reads reactive sources.
+ * @returns The same thunk, branded as an `Accessor<T>`.
+ */
+export const derived = <T>(fn: () => T): Accessor<T> => tagAccessor(fn);
+
+/**
  * Registers a cleanup function that runs when the current scope is disposed.
  *
  * @param fn The cleanup function.
