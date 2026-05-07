@@ -65,6 +65,13 @@ export type Component<P = Record<string, unknown>> = (
 ) => Node;
 
 /**
+ * A reactive accessor: a getter function tagged with a signal symbol.
+ */
+export type Accessor<T> = (() => T) & {
+  readonly [key: symbol]: true;
+};
+
+/**
  * Creates a new reactive root. Computations created inside a root are
  * automatically disposed when the root is disposed.
  */
@@ -76,12 +83,17 @@ export declare function createRoot<T>(fn: (dispose: () => void) => T): T;
 export declare function createSignal<T>(
   value: T,
   options?: { equals?: false | ((prev: T, next: T) => boolean) },
-): [() => T, (v: T | ((prev: T) => T)) => T];
+): [Accessor<T>, (v: T | ((prev: T) => T)) => T];
 
 /**
  * Creates a reactive effect that runs when its dependencies change.
  */
 export declare function createEffect<T>(fn: (v?: T) => T, value?: T): void;
+
+/**
+ * Creates a memoized reactive computation.
+ */
+export declare function createMemo<T>(fn: () => T): Accessor<T>;
 
 /**
  * Registers a cleanup function that runs when the current scope is disposed.
@@ -144,6 +156,31 @@ export declare function Match(props: {
   children: Child;
   __isMatch: true;
 };
+
+/**
+ * Marks an inline thunk as a reactive expression for the runtime.
+ * Equivalent to a plain thunk but branded as an Accessor.
+ */
+export declare function derived<T>(fn: () => T): Accessor<T>;
+
+/**
+ * Configuration for persistence in makePersisted.
+ */
+export interface PersistenceOptions<T> {
+  name: string;
+  storage?: Storage;
+  serialize?: (value: T) => string;
+  deserialize?: (value: string) => T;
+  sync?: boolean;
+}
+
+/**
+ * Persists a signal to a storage API (like localStorage).
+ */
+export declare function makePersisted<T>(
+  signal: [Accessor<T>, (v: T | ((prev: T) => T)) => T],
+  options: PersistenceOptions<T>,
+): [Accessor<T>, (v: T | ((prev: T) => T)) => T];
 `;
 
     await Deno.writeTextFile(dtsOutput, dtsCode);
