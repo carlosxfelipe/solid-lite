@@ -202,13 +202,44 @@ property found in the style object.
 
 ---
 
+## 6. Persistence: `makePersisted`
+
+**solid-lite**
+
+`makePersisted` is built directly into the core package. It allows easy
+persistence of signals to `localStorage` or other storage APIs.
+
+```tsx
+import { createSignal, makePersisted } from "@solid/index.ts";
+
+const [count, setCount] = makePersisted(createSignal(0), { name: "counter" });
+```
+
+**SolidJS**
+
+SolidJS core does **not** include persistence. It is provided by the official
+ecosystem via the `@solid-primitives/storage` package.
+
+```tsx
+import { createSignal } from "solid-js";
+import { makePersisted } from "@solid-primitives/storage";
+
+const [count, setCount] = makePersisted(createSignal(0), { name: "counter" });
+```
+
+In **solid-lite**, we've integrated this primitive directly to provide a
+"batteries-included" experience for minimalist web apps.
+
+---
+
 ## Summary
 
-| Aspect        | solid-lite                       | SolidJS                    |
-| ------------- | -------------------------------- | -------------------------- |
-| Signal in JSX | `{count}` (getter)               | `{count()}`                |
-| `<Show when>` | getter: `when={fn}`              | value: `when={fn()}`       |
-| `<For each>`  | getter: `each={fn}`              | value: `each={fn()}`       |
-| Mount         | separate `createRoot` + `render` | `render(() => ..., el)`    |
-| Style Object  | supports nested getters          | requires called signals    |
-| Compiler      | none (pure runtime)              | Babel/Vite plugin required |
+| Aspect          | solid-lite                       | SolidJS                              |
+| --------------- | -------------------------------- | ------------------------------------ |
+| Signal in JSX   | `{count}` (getter)               | `{count()}`                          |
+| `<Show when>`   | getter: `when={fn}`              | value: `when={fn()}`                 |
+| `<For each>`    | getter: `each={fn}`              | value: `each={fn()}`                 |
+| Mount           | separate `createRoot` + `render` | `render(() => ..., el)`              |
+| Style Object    | supports nested getters          | requires called signals              |
+| `makePersisted` | **Built-in**                     | Requires `@solid-primitives/storage` |
+| Compiler        | none (pure runtime)              | Babel/Vite plugin required           |

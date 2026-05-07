@@ -796,3 +796,5 @@ export function Match(props: { when: () => unknown; children: Child }) {
     __isMatch: true,
   };
 }
+
+export * from "./storage.ts";

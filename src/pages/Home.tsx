@@ -1,13 +1,15 @@
-import { createEffect, createSignal, derived, h } from "@solid/index.ts";
+import {
+  createEffect,
+  createSignal,
+  derived,
+  h,
+  makePersisted,
+} from "@solid/index.ts";
 import { StyleSheet } from "@utils/style.ts";
 
 export function Home() {
-  const [count, setCount] = createSignal(
-    Number(localStorage.getItem("counter") || 3),
-  );
-
-  createEffect(() => {
-    localStorage.setItem("counter", count().toString());
+  const [count, setCount] = makePersisted(createSignal(3), {
+    name: "counter",
   });
 
   return (
